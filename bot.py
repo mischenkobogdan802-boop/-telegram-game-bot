@@ -2,6 +2,7 @@ import os
 import random
 import sqlite3
 import asyncio
+import time
 
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import CommandStart
@@ -429,16 +430,56 @@ async def crash():
 @dp.callback_query(lambda c: c.data == "bonus")
 async def bonus(callback: types.CallbackQuery):
 
+    user_id = callback.from_user.id
+
+    now = int(time.time())
+
+
     cursor.execute(
-        "UPDATE users SET balance=balance+5 WHERE user_id=?",
-        (callback.from_user.id,)
+        "SELECT last_bonus FROM users WHERE user_id=?",
+        (user_id,)
     )
+
+    result = cursor.fetchone()
+
+
+    if result:
+
+        last_bonus = result[0]
+
+        # 24 години = 86400 секунд
+        if now - last_bonus < 86400:
+
+            left = 86400 - (now - last_bonus)
+
+            hours = left // 3600
+            minutes = (left % 3600) // 60
+
+
+            await callback.answer(
+                f"⏳ Бонус вже отриманий!\n"
+                f"Повертайся через {hours} год {minutes} хв",
+                show_alert=True
+            )
+
+            return
+
+
+
+    bonus_amount = 10
+
+
+    cursor.execute(
+        "UPDATE users SET balance = balance + ?, last_bonus = ? WHERE user_id=?",
+        (bonus_amount, now, user_id)
+    )
+
 
     db.commit()
 
 
     await callback.message.edit_text(
-        "🎁 Ти отримав +5 монет!",
+        f"🎁 Ти отримав щоденний бонус +{bonus_amount} монет!",
         reply_markup=menu()
     )
 
