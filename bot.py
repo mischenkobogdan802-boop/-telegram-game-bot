@@ -192,11 +192,70 @@ if __name__ == "__main__":
 
 async def main():
     
-    await dp.start_polling(bot)
-    @dp.callback_query(lambda c: c.data == "flight")
+    await dp.start_polling(@dp.callback_query(lambda c: c.data == "flight")
+
 async def flight(callback: types.CallbackQuery):
-    # тут весь код польоту
-    ...
+    cursor.execute(
+        "SELECT balance FROM users WHERE user_id = ?",
+        (callback.from_user.id,)
+    )
+    result = cursor.fetchone()
+
+    if not result:
+        await callback.answer(
+            "❌ Спочатку натисни /start",
+            show_alert=True
+        )
+        return
+
+    balance = result[0]
+
+    if balance < 10:
+        await callback.answer(
+            "❌ Потрібно мінімум 10 монет для польоту!",
+            show_alert=True
+        )
+        return
+
+    # Ставка за політ
+    bet = 10
+
+    # випадковий результат
+    chance = random.randint(1, 100)
+
+    if chance <= 50:
+        # перемога
+        win = random.randint(10, 50)
+        cursor.execute(
+            "UPDATE users SET balance = balance + ? WHERE user_id = ?",
+            (win, callback.from_user.id)
+        )
+
+        text = (
+            "✈️ Політ успішний!\n\n"
+            f"🎉 Ти отримав +{win} монет!"
+        )
+
+    else:
+        # програш
+        cursor.execute(
+            "UPDATE users SET balance = balance - ? WHERE user_id = ?",
+            (bet, callback.from_user.id)
+        )
+
+        text = (
+            "✈️ Політ невдалий 😢\n\n"
+            f"💸 Ти втратив {bet} монет."
+        )
+
+    db.commit()
+
+    await callback.message.edit_text(
+        text,
+        reply_markup=menu()
+    )
+
+    await callback.answer()
 
 
 async def main():
