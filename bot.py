@@ -254,14 +254,23 @@ async def get_bet(message: types.Message, state: FSMContext):
     # якщо літак ще не запущений
     if not flight_active:
 
-        flight_active = True
+    flight_active = True
 
-        multiplier = 1.0
+    multiplier = 1.0
 
-        crash_point = round(
-            random.uniform(1.5, 8),
-            2
-        )
+    chance = random.randint(1, 100)
+
+    if chance <= 70:
+        # 70% — падіння 1.00x–1.50x
+        crash_point = round(random.uniform(1.00, 1.50), 2)
+
+    elif chance <= 95:
+        # 25% — падіння 1.50x–3.00x
+        crash_point = round(random.uniform(1.50, 3.00), 2)
+
+    else:
+        # 5% — довгий політ
+        crash_point = round(random.uniform(3.00, 10.00), 2)
 
 
         await message.answer(
