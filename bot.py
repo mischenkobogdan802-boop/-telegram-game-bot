@@ -111,7 +111,7 @@ async def start(message: types.Message):
     await message.answer(
         "🎮 Ласкаво просимо!\n\n"
         "✈️ Гра: Crash Політ\n"
-        "⭐ Баланс: 1000 монет",
+        "⭐ Баланс: 0 монет",
         reply_markup=menu()
     )
 
