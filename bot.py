@@ -151,22 +151,6 @@ async def flight_start(callback: types.CallbackQuery, state: FSMContext):
         )
         return
 
-
-    chance = random.randint(1, 100)
-
-    if chance <= 70:
-        # 70% — раннє падіння
-        crash_point = round(random.uniform(1.00, 1.50), 2)
-
-    elif chance <= 95:
-        # 25% — середній політ
-        crash_point = round(random.uniform(1.50, 3.00), 2)
-
-    else:
-        # 5% — довгий політ
-        crash_point = round(random.uniform(3.00, 10.00), 2)
-
-
     await callback.message.answer(
         "✈️ Новий політ!\n\n"
         "Введи свою ставку:"
@@ -175,7 +159,6 @@ async def flight_start(callback: types.CallbackQuery, state: FSMContext):
     await state.set_state(BetState.waiting_bet)
 
     await callback.answer()
-
 
 
 # ===== ОТРИМАННЯ СТАВКИ =====
