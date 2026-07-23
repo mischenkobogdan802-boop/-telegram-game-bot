@@ -168,23 +168,25 @@ async def flight(callback: types.CallbackQuery):
 
 
     await callback.answer()
- @dp.callback_query(lambda c: c.data == "bonus")
- async def bonus(callback: types.CallbackQuery):
+    
+@dp.callback_query(lambda c: c.data == "bonus")
+async def bonus(callback: types.CallbackQuery):
 
     bonus_amount = 5
 
     cursor.execute(
-        "UPDATE users SET balance=balance+? WHERE user_id=?",
+        "UPDATE users SET balance = balance + ? WHERE user_id = ?",
         (bonus_amount, callback.from_user.id)
     )
 
     db.commit()
 
-
     await callback.message.edit_text(
         f"🎁 Ти отримав +{bonus_amount} монет!",
         reply_markup=menu()
     )
+
+    await callback.answer()
 
 
 @dp.callback_query(lambda c: c.data == "profile")
