@@ -2,11 +2,9 @@ import os
 import random
 import sqlite3
 import asyncio
-
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import CommandStart
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-
 
 TOKEN = os.getenv("BOT_TOKEN")
 
@@ -36,22 +34,18 @@ def menu():
                 text="✈️ Політ",
                 callback_data="flight"
             )],
-
             [InlineKeyboardButton(
                 text="⭐️ Баланс",
                 callback_data="balance"
             )],
-
             [InlineKeyboardButton(
                 text="🎁 Бонус",
                 callback_data="bonus"
             )],
-
             [InlineKeyboardButton(
                 text="🏆 Рейтинг",
                 callback_data="rating"
             )],
-
             [InlineKeyboardButton(
                 text="👤 Профіль",
                 callback_data="profile"
@@ -72,14 +66,12 @@ async def start(message: types.Message):
 
     db.commit()
 
-
     await message.answer(
         f"👋 Привіт, {user.first_name}!\n\n"
         "🎮 Гра запущена!\n"
-        "⭐ Твій баланс: 1000 монет",
+        "⭐ Твій баланс: 0 монет",
         reply_markup=menu()
     )
-
 
 @dp.callback_query(lambda c: c.data == "balance")
 async def balance(callback: types.CallbackQuery):
@@ -177,7 +169,7 @@ async def flight(callback: types.CallbackQuery):
 
     await callback.answer()
     @dp.callback_query(lambda c: c.data == "bonus")
-async def bonus(callback: types.CallbackQuery):
+    async def bonus(callback: types.CallbackQuery):
 
     bonus_amount = 5
 
