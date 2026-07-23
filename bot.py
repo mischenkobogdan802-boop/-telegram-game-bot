@@ -149,7 +149,7 @@ async def flight_start(callback: types.CallbackQuery, state: FSMContext):
             "✈️ Політ вже йде! Дочекайся наступного раунду.",
             show_alert=True
             
-            chance = random.randint(1, 100)
+chance = random.randint(1, 100)
 
 if chance <= 70:
     # 70% — раннє падіння
