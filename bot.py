@@ -6,8 +6,9 @@ from aiogram.filters import CommandStart
 from aiogram.types import (
     InlineKeyboardMarkup,
     InlineKeyboardButton,
-    LabeledPrice
+
 )
+
 import asyncio
 
 TOKEN = os.getenv("BOT_TOKEN")
@@ -111,7 +112,7 @@ async def play(callback: types.CallbackQuery):
 
 @dp.callback_query(lambda c: c.data == "bonus")
 async def bonus(callback: types.CallbackQuery):
-    bonus_amount = 100
+    bonus_amount = 5
 
     cursor.execute(
         "UPDATE users SET balance = balance + ? WHERE user_id = ?",
