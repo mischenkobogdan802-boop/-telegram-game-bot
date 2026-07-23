@@ -225,17 +225,14 @@ async def get_bet(message: types.Message, state: FSMContext):
 
 
     bets[message.from_user.id] = {
-        "bet": bet,
-        "cashout": False
-    }
+    "bet": bet,
+    "cashout": False
+}
 
+await state.clear()
 
-    await state.clear()
-
-
-
-    # якщо літак ще не запущений
-    if not flight_active:
+# якщо літак ще не запущений
+if not flight_active:
 
     flight_active = True
 
