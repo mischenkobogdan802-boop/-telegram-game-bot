@@ -148,7 +148,10 @@ async def flight_start(callback: types.CallbackQuery, state: FSMContext):
         await callback.answer(
             "✈️ Політ вже йде! Дочекайся наступного раунду.",
             show_alert=True
-            
+        )
+
+            return
+ 
 chance = random.randint(1, 100)
 
 if chance <= 70:
@@ -162,11 +165,6 @@ elif chance <= 95:
 else:
     # 5% — довгий політ
     crash_point = round(random.uniform(3.00, 10.00), 2)
-        
-    )
-
-
-        return
 
 
     await callback.message.answer(
