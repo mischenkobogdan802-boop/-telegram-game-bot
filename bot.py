@@ -2,14 +2,24 @@ import os
 import random
 import sqlite3
 import asyncio
+
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import CommandStart
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import (
+    InlineKeyboardMarkup,
+    InlineKeyboardButton
+)
+
+from aiogram.fsm.storage.memory import MemoryStorage
+from aiogram.fsm.state import State, StatesGroup
+from aiogram.fsm.context import FSMContext
+
 
 TOKEN = os.getenv("BOT_TOKEN")
 
 bot = Bot(token=TOKEN)
-dp = Dispatcher()
+
+dp = Dispatcher(storage=MemoryStorage())
 
 
 db = sqlite3.connect("bot.db")
@@ -27,32 +37,63 @@ CREATE TABLE IF NOT EXISTS users (
 db.commit()
 
 
+# ===== СТАН ВВЕДЕННЯ СТАВКИ =====
+
+class BetState(StatesGroup):
+    waiting_bet = State()
+
+
+# ===== ДАНІ СПІЛЬНОГО ПОЛЬОТУ =====
+
+flight_active = False
+multiplier = 1.0
+crash_point = 0
+
+bets = {}
+
+flight_message_ids = []
+
+
+# ===== МЕНЮ =====
+
 def menu():
+
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(
-                text="✈️ Політ",
-                callback_data="flight"
-            )],
-            [InlineKeyboardButton(
-                text="⭐️ Баланс",
-                callback_data="balance"
-            )],
-            [InlineKeyboardButton(
-                text="🎁 Бонус",
-                callback_data="bonus"
-            )],
-            [InlineKeyboardButton(
-                text="🏆 Рейтинг",
-                callback_data="rating"
-            )],
-            [InlineKeyboardButton(
-                text="👤 Профіль",
-                callback_data="profile"
-            )]
+
+            [
+                InlineKeyboardButton(
+                    text="✈️ Політ",
+                    callback_data="flight"
+                )
+            ],
+
+            [
+                InlineKeyboardButton(
+                    text="⭐ Баланс",
+                    callback_data="balance"
+                )
+            ],
+
+            [
+                InlineKeyboardButton(
+                    text="🎁 Бонус",
+                    callback_data="bonus"
+                )
+            ],
+
+            [
+                InlineKeyboardButton(
+                    text="👤 Профіль",
+                    callback_data="profile"
+                )
+            ]
+
         ]
     )
 
+
+# ===== START =====
 
 @dp.message(CommandStart())
 async def start(message: types.Message):
@@ -60,18 +101,22 @@ async def start(message: types.Message):
     user = message.from_user
 
     cursor.execute(
-        "INSERT OR IGNORE INTO users (user_id, username) VALUES (?, ?)",
+        "INSERT OR IGNORE INTO users(user_id, username) VALUES (?,?)",
         (user.id, user.username)
     )
 
     db.commit()
 
+
     await message.answer(
-        f"👋 Привіт, {user.first_name}!\n\n"
-        "🎮 Гра запущена!\n"
-        "⭐ Твій баланс: 0 монет",
+        "🎮 Ласкаво просимо!\n\n"
+        "✈️ Гра: Crash Політ\n"
+        "⭐ Баланс: 1000 монет",
         reply_markup=menu()
     )
+
+
+# ===== БАЛАНС =====
 
 @dp.callback_query(lambda c: c.data == "balance")
 async def balance(callback: types.CallbackQuery):
@@ -90,114 +135,324 @@ async def balance(callback: types.CallbackQuery):
         f"⭐ Твій баланс: {coins} монет",
         reply_markup=menu()
     )
-
+    # ===== КНОПКА ПОЛІТ =====
 
 @dp.callback_query(lambda c: c.data == "flight")
-async def flight(callback: types.CallbackQuery):
+async def flight_start(callback: types.CallbackQuery, state: FSMContext):
+
+    global flight_active
+
+    if flight_active:
+        await callback.answer(
+            "✈️ Політ вже йде! Дочекайся наступного раунду.",
+            show_alert=True
+        )
+        return
+
+
+    await callback.message.answer(
+        "✈️ Новий політ!\n\n"
+        "Введи свою ставку:"
+    )
+
+    await state.set_state(BetState.waiting_bet)
+
+    await callback.answer()
+
+
+
+# ===== ОТРИМАННЯ СТАВКИ =====
+
+@dp.message(BetState.waiting_bet)
+async def get_bet(message: types.Message, state: FSMContext):
+
+    global flight_active
+    global multiplier
+    global crash_point
+
+
+    try:
+        bet = int(message.text)
+
+    except:
+
+        await message.answer(
+            "❌ Введи число"
+        )
+
+        return
+
+
 
     cursor.execute(
         "SELECT balance FROM users WHERE user_id=?",
-        (callback.from_user.id,)
+        (message.from_user.id,)
     )
 
     result = cursor.fetchone()
 
 
-    if not result:
-        await callback.answer(
-            "Натисни /start",
-            show_alert=True
+    if not result or result[0] < bet:
+
+        await message.answer(
+            "❌ Недостатньо монет"
         )
+
+        await state.clear()
         return
 
 
-    balance = result[0]
 
+    if bet <= 0:
 
-    if balance < 10:
-
-        await callback.answer(
-            "❌ Потрібно 10 монет!",
-            show_alert=True
+        await message.answer(
+            "❌ Ставка має бути більше 0"
         )
 
         return
 
 
-    chance = random.randint(1,100)
+
+    # списуємо ставку
+
+    cursor.execute(
+        "UPDATE users SET balance=balance-? WHERE user_id=?",
+        (bet, message.from_user.id)
+    )
+
+    db.commit()
 
 
-    if chance <= 50:
 
-        win = random.randint(10,50)
+    bets[message.from_user.id] = {
+        "bet": bet,
+        "cashout": False
+    }
 
 
-        cursor.execute(
-            "UPDATE users SET balance=balance+? WHERE user_id=?",
-            (win, callback.from_user.id)
+    await state.clear()
+
+
+
+    # якщо літак ще не запущений
+    if not flight_active:
+
+        flight_active = True
+
+        multiplier = 1.0
+
+        crash_point = round(
+            random.uniform(1.5, 8),
+            2
         )
 
 
-        text = (
-            "✈️ Політ успішний!\n\n"
-            f"🎉 +{win} монет"
+        await message.answer(
+            "✈️ ЛІТАК ЗЛЕТІВ!\n\n"
+            "Коефіцієнт: 1.00x"
         )
+
+
+        asyncio.create_task(run_flight())
 
 
     else:
 
-        cursor.execute(
-            "UPDATE users SET balance=balance-10 WHERE user_id=?",
-            (callback.from_user.id,)
+        await message.answer(
+            "✅ Ти приєднався до польоту!"
         )
+
+
+
+# ===== АНІМАЦІЯ ПОЛЬОТУ =====
+
+
+async def run_flight():
+
+    global multiplier
+    global flight_active
+
+
+    while multiplier < crash_point:
+
+
+        await asyncio.sleep(2)
+
+
+        multiplier += 0.25
+
+        multiplier = round(multiplier,2)
 
 
         text = (
-            "✈️ Політ невдалий 😢\n\n"
-            "💸 -10 монет"
+            "✈️ Літак летить!\n\n"
+            f"🚀 Коефіцієнт: {multiplier}x"
         )
 
 
+        # повідомлення всім гравцям
+
+        for user_id in bets:
+
+            try:
+
+                await bot.send_message(
+                    user_id,
+                    text,
+                    reply_markup=cashout_button()
+                )
+
+            except:
+                pass
+
+
+
+    await crash()
+    # ===== КНОПКА ЗАБРАТИ =====
+
+def cashout_button():
+
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text="💰 Забрати",
+                    callback_data="cashout"
+                )
+            ]
+        ]
+    )
+
+
+
+@dp.callback_query(lambda c: c.data == "cashout")
+async def cashout(callback: types.CallbackQuery):
+
+    user_id = callback.from_user.id
+
+
+    if user_id not in bets:
+
+        await callback.answer(
+            "❌ У тебе немає ставки",
+            show_alert=True
+        )
+
+        return
+
+
+
+    if bets[user_id]["cashout"]:
+
+        await callback.answer(
+            "Ти вже забрав виграш",
+            show_alert=True
+        )
+
+        return
+
+
+
+    bets[user_id]["cashout"] = True
+
+
+    bet = bets[user_id]["bet"]
+
+
+    win = int(
+        bet * multiplier
+    )
+
+
+    cursor.execute(
+        "UPDATE users SET balance=balance+? WHERE user_id=?",
+        (win, user_id)
+    )
+
     db.commit()
 
 
-    await callback.message.edit_text(
-        text,
-        reply_markup=menu()
+
+    await callback.message.answer(
+        "💰 Ти забрав виграш!\n\n"
+        f"✈️ Коефіцієнт: {multiplier}x\n"
+        f"⭐ Отримано: {win} монет"
     )
 
 
     await callback.answer()
-    
+
+
+
+# ===== ПАДІННЯ ЛІТАКА =====
+
+
+async def crash():
+
+    global flight_active
+    global multiplier
+
+
+    flight_active = False
+
+
+    text = (
+        "💥 ЛІТАК ВПАВ!\n\n"
+        f"Останній коефіцієнт: {multiplier}x"
+    )
+
+
+    for user_id in bets:
+
+        try:
+
+            await bot.send_message(
+                user_id,
+                text
+            )
+
+        except:
+            pass
+
+
+
+    bets.clear()
+
+    multiplier = 1.0
+
+
+
+
+# ===== БОНУС =====
+
+
 @dp.callback_query(lambda c: c.data == "bonus")
 async def bonus(callback: types.CallbackQuery):
 
-    bonus_amount = 5
-
     cursor.execute(
-        "UPDATE users SET balance = balance + ? WHERE user_id = ?",
-        (bonus_amount, callback.from_user.id)
+        "UPDATE users SET balance=balance+5 WHERE user_id=?",
+        (callback.from_user.id,)
     )
 
     db.commit()
 
+
     await callback.message.edit_text(
-        f"🎁 Ти отримав +{bonus_amount} монет!",
+        "🎁 Ти отримав +5 монет!",
         reply_markup=menu()
     )
 
-    await callback.answer()
+
+
+# ===== ПРОФІЛЬ =====
 
 
 @dp.callback_query(lambda c: c.data == "profile")
 async def profile(callback: types.CallbackQuery):
 
-    user = callback.from_user
-
-
     cursor.execute(
         "SELECT balance FROM users WHERE user_id=?",
-        (user.id,)
+        (callback.from_user.id,)
     )
 
     result = cursor.fetchone()
@@ -207,41 +462,14 @@ async def profile(callback: types.CallbackQuery):
 
     await callback.message.edit_text(
         f"👤 Профіль\n\n"
-        f"🆔 ID: {user.id}\n"
-        f"👤 Ім'я: {user.first_name}\n"
+        f"🆔 ID: {callback.from_user.id}\n"
         f"⭐ Баланс: {balance}",
         reply_markup=menu()
     )
 
 
-@dp.callback_query(lambda c: c.data == "rating")
-async def rating(callback: types.CallbackQuery):
 
-    cursor.execute(
-        "SELECT username, balance FROM users "
-        "ORDER BY balance DESC LIMIT 10"
-    )
-
-    users = cursor.fetchall()
-
-
-    text = "🏆 ТОП-10 ГРАВЦІВ\n\n"
-
-
-    for i, (username, balance) in enumerate(users, 1):
-
-        name = username or "Гравець"
-
-        text += (
-            f"{i}. {name} — "
-            f"{balance} ⭐\n"
-        )
-
-
-    await callback.message.edit_text(
-        text,
-        reply_markup=menu()
-    )
+# ===== ЗАПУСК =====
 
 
 async def main():
@@ -251,4 +479,5 @@ async def main():
 
 
 if __name__ == "__main__":
+
     asyncio.run(main())
