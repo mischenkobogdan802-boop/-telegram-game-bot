@@ -145,12 +145,11 @@ async def flight_start(callback: types.CallbackQuery, state: FSMContext):
     global flight_active
 
     if flight_active:
-        await callback.answer(
-            "✈️ Політ вже йде! Дочекайся наступного раунду.",
-            show_alert=True
-        )
-
-            return
+    await callback.answer(
+        "✈️ Політ вже йде! Дочекайся наступного раунду.",
+        show_alert=True
+    )
+    return
  
 chance = random.randint(1, 100)
 
