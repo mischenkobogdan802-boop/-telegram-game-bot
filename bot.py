@@ -1,9 +1,13 @@
 import os
 import random
 import sqlite3
-from aiogram import Bot, Dispatcher, types
+from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import CommandStart
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import (
+    InlineKeyboardMarkup,
+    InlineKeyboardButton,
+    LabeledPrice
+)
 import asyncio
 
 TOKEN = os.getenv("BOT_TOKEN")
@@ -25,14 +29,16 @@ db.commit()
 
 
 def menu():
-    return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="🎮 Грати", callback_data="play")],
-        [InlineKeyboardButton(text="🪙 Баланс", callback_data="balance")],
-        [InlineKeyboardButton(text="🎁 Бонус", callback_data="bonus")],
-        [InlineKeyboardButton(text="🏆 Рейтинг", callback_data="rating")],
-        [InlineKeyboardButton(text="👤 Профіль", callback_data="profile")]
-    ])
-
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="✈️ Політ", callback_data="flight")],
+            [InlineKeyboardButton(text="⭐️ Баланс", callback_data="balance")],
+            [InlineKeyboardButton(text="🎁 Бонус", callback_data="bonus")],
+            [InlineKeyboardButton(text="🏆 Рейтинг", callback_data="rating")],
+            [InlineKeyboardButton(text="👤 Профіль", callback_data="profile")],
+            [InlineKeyboardButton(text="⭐ Донат", callback_data="donate")]
+        ]
+    )
 
 @dp.message(CommandStart())
 async def start(message: types.Message):
@@ -47,7 +53,7 @@ async def start(message: types.Message):
     await message.answer(
         f"👋 Привіт, {user.first_name}!\n\n"
         "🎮 Ласкаво просимо до нашої гри!\n"
-        "🪙 Твій стартовий баланс: 1000 монет.",
+        "⭐️ Твій стартовий баланс: 0 монет.",
         reply_markup=menu()
     )
 
@@ -63,7 +69,7 @@ async def balance(callback: types.CallbackQuery):
     balance = result[0] if result else 0
 
     await callback.message.edit_text(
-        f"🪙 Твій баланс: {balance} монет",
+        f"⭐️ Твій баланс: {balance} монет",
         reply_markup=menu()
     )
 
@@ -135,7 +141,7 @@ async def profile(callback: types.CallbackQuery):
         f"👤 Профіль\n\n"
         f"🆔 ID: {user.id}\n"
         f"👤 Ім'я: {user.first_name}\n"
-        f"🪙 Баланс: {balance}",
+        f"⭐️ Баланс: {balance}",
         reply_markup=menu()
     )
 
@@ -153,15 +159,52 @@ async def rating(callback: types.CallbackQuery):
 
     for i, (username, balance) in enumerate(users, 1):
         name = username or "Гравець"
-        text += f"{i}. {name} — {balance} 🪙\n"
+        text += f"{i}. {name} — {balance} ⭐️\n"
 
     await callback.message.edit_text(
         text,
         reply_markup=menu()
     )
+    
+@dp.callback_query(lambda c: c.data == "donate")
+async def donate(callback: types.CallbackQuery):
+    prices = [LabeledPrice(label="Підтримка бота", amount=100)]
+
+    await bot.send_invoice(
+        chat_id=callback.from_user.id,
+        title="⭐ Донат",
+        description="Дякуємо за підтримку нашого бота!",
+        payload="donate_100",
+        currency="XTR",
+        prices=prices
+    )
+
+    await callback.answer()
 
 
 async def main():
+    await dp.start_polling(bot)
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
+
+async def main():
+    
+    @dp.pre_checkout_query()
+async def process_pre_checkout_query(pre_checkout_query: types.PreCheckoutQuery):
+    await bot.answer_pre_checkout_query(
+        pre_checkout_query.id,
+        ok=True
+    )
+
+
+@dp.message(F.successful_payment)
+async def successful_payment(message: types.Message):
+    await message.answer(
+        "🎉 Дякуємо за підтримку!\n\n"
+        "⭐ Оплату успішно отримано."
+    )
     await dp.start_polling(bot)
 
 
