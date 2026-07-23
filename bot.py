@@ -266,22 +266,6 @@ else:
     )
 
 
-        await message.answer(
-            "✈️ ЛІТАК ЗЛЕТІВ!\n\n"
-            "Коефіцієнт: 1.00x"
-        )
-
-
-        asyncio.create_task(run_flight())
-
-
-    else:
-
-        await message.answer(
-            "✅ Ти приєднався до польоту!"
-        )
-
-
 
 # ===== АНІМАЦІЯ ПОЛЬОТУ =====
 
