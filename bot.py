@@ -192,9 +192,19 @@ if __name__ == "__main__":
 
 async def main():
     
-   
+    await dp.start_polling(bot)
+    @dp.callback_query(lambda c: c.data == "flight")
+async def flight(callback: types.CallbackQuery):
+    # тут весь код польоту
+    ...
+
+
+async def main():
     await dp.start_polling(bot)
 
+
+if __name__ == "__main__":
+    asyncio.run(main())
 
 if __name__ == "__main__":
     asyncio.run(main())
