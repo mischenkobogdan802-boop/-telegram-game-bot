@@ -137,7 +137,7 @@ async def balance(callback: types.CallbackQuery):
         f"⭐ Твій баланс: {coins} монет",
         reply_markup=menu()
     )
-    # ===== КНОПКА ПОЛІТ =====
+# ===== КНОПКА ПОЛІТ =====
 
 @dp.callback_query(lambda c: c.data == "flight")
 async def flight_start(callback: types.CallbackQuery, state: FSMContext):
@@ -145,25 +145,26 @@ async def flight_start(callback: types.CallbackQuery, state: FSMContext):
     global flight_active
 
     if flight_active:
-    await callback.answer(
-        "✈️ Політ вже йде! Дочекайся наступного раунду.",
-        show_alert=True
-    )
-    return
- 
-chance = random.randint(1, 100)
+        await callback.answer(
+            "✈️ Політ вже йде! Дочекайся наступного раунду.",
+            show_alert=True
+        )
+        return
 
-if chance <= 70:
-    # 70% — раннє падіння
-    crash_point = round(random.uniform(1.00, 1.50), 2)
 
-elif chance <= 95:
-    # 25% — середній політ
-    crash_point = round(random.uniform(1.50, 3.00), 2)
+    chance = random.randint(1, 100)
 
-else:
-    # 5% — довгий політ
-    crash_point = round(random.uniform(3.00, 10.00), 2)
+    if chance <= 70:
+        # 70% — раннє падіння
+        crash_point = round(random.uniform(1.00, 1.50), 2)
+
+    elif chance <= 95:
+        # 25% — середній політ
+        crash_point = round(random.uniform(1.50, 3.00), 2)
+
+    else:
+        # 5% — довгий політ
+        crash_point = round(random.uniform(3.00, 10.00), 2)
 
 
     await callback.message.answer(
