@@ -23,7 +23,7 @@ bot = Bot(token=TOKEN)
 dp = Dispatcher(storage=MemoryStorage())
 
 
-db = sqlite3.connect("bot.db")
+db = sqlite3.connect("/opt/render/project/src/data/bot.db")
 cursor = db.cursor()
 
 
