@@ -1,0 +1,53 @@
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+
+
+def main_menu():
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text="✈️ Політ",
+                    callback_data="flight"
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    text="👤 Профіль",
+                    callback_data="profile"
+                ),
+                InlineKeyboardButton(
+                    text="⭐ Баланс",
+                    callback_data="balance"
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    text="🎁 Бонус",
+                    callback_data="bonus"
+                ),
+                InlineKeyboardButton(
+                    text="🏆 Рейтинг",
+                    callback_data="rating"
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    text="💎 Донат",
+                    callback_data="donate"
+                )
+            ]
+        ]
+    )
+
+
+def cashout_keyboard():
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text="💰 Забрати",
+                    callback_data="cashout"
+                )
+            ]
+        ]
+    )
