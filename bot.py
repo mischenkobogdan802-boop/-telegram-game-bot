@@ -168,8 +168,8 @@ async def flight(callback: types.CallbackQuery):
 
 
     await callback.answer()
-    @dp.callback_query(lambda c: c.data == "bonus")
-    async def bonus(callback: types.CallbackQuery):
+ @dp.callback_query(lambda c: c.data == "bonus")
+ async def bonus(callback: types.CallbackQuery):
 
     bonus_amount = 5
 
