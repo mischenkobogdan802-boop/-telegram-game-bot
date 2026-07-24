@@ -1,3 +1,4 @@
+import os
 import asyncio
 import logging
 import random
@@ -7,8 +8,8 @@ from aiogram import Bot, Dispatcher, F, types
 from aiogram.filters import Command
 from aiogram.types import LabeledPrice, PreCheckoutQuery, InlineKeyboardMarkup, InlineKeyboardButton
 
-# ==================== НАЛАШТУВАННЯ ====================
-BOT_TOKEN = "YOUR_BOT_TOKEN_HERE"  # Вставте ваш токен від BotFather
+# Отримуємо токен зі змінних оточення Render
+BOT_TOKEN = os.getenv("BOT_TOKEN")
 
 logging.basicConfig(level=logging.INFO)
 
