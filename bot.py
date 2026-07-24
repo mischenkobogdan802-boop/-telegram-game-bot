@@ -47,14 +47,17 @@ def init_db():
     conn.close()
 
 def get_user(user_id: int, username: str):
+    # Захист від порожнього імені
+    safe_username = username if username else "Гравець"
+    
     conn = sqlite3.connect("database.db")
     cursor = conn.cursor()
     cursor.execute("SELECT user_id, username, balance, last_bonus FROM users WHERE user_id = ?", (user_id,))
     row = cursor.fetchone()
     if not row:
-        cursor.execute("INSERT INTO users (user_id, username, balance, last_bonus) VALUES (?, ?, 0, 0)", (user_id, username))
+        cursor.execute("INSERT INTO users (user_id, username, balance, last_bonus) VALUES (?, ?, 0, 0)", (user_id, safe_username))
         conn.commit()
-        row = (user_id, username, 0, 0)
+        row = (user_id, safe_username, 0, 0)
     conn.close()
     return row
 
@@ -72,8 +75,8 @@ class CrashGame:
         self.current_multiplier = 1.00
         self.crashed = False
         self.target_multiplier = 1.00
-        self.bets = {}  # user_id: {"amount": int, "username": str, "won": bool}
-        self.live_messages = {}  # chat_id: message_id
+        self.bets = {}
+        self.live_messages = {}
 
     def generate_crash_multiplier(self) -> float:
         rand = random.random()
@@ -101,7 +104,7 @@ async def update_live_messages(text: str, reply_markup=None):
         except Exception:
             pass
 
-# ==================== 3. АВТОМАТИЧНИЙ ЦИКЛ ПОЛЬОТУ (20 сек) ====================
+# ==================== 3. АВТОМАТИЧНИЙ ЦИКЛ ПОЛЬОТУ ====================
 async def crash_game_loop():
     while True:
         # --- ФАЗА 1: Очікування ставок (10 секунд) ---
@@ -191,7 +194,8 @@ def main_menu_keyboard():
 
 @dp.message(Command("start"))
 async def cmd_start(message: types.Message):
-    get_user(message.from_user.id, message.from_user.username or "Гравець")
+    user_name = message.from_user.username or message.from_user.full_name or "Гравець"
+    get_user(message.from_user.id, user_name)
     text = (
         "👋 **Вітаємо у Crash Game!**\n\n"
         "Незмінне правило: **зліт кожні 20 секунд!**\n"
@@ -237,9 +241,13 @@ async def spawn_live_game(chat_id: int):
 @dp.message(F.text == "👤 Профіль")
 @dp.message(Command("profile"))
 async def cmd_profile(message: types.Message):
-    user = get_user(message.from_user.id, message.from_user.username or "Гравець")
+    display_name = message.from_user.username or message.from_user.full_name or "Гравець"
+    user = get_user(message.from_user.id, display_name)
+    
+    name_in_db = user[1] if user[1] else "Гравець"
+    
     await message.answer(
-        f"👤 **Профіль:** {user[1]}\n🆔 **ID:** `{user[0]}`\n💰 **Баланс:** `{user[2]}` ⭐", 
+        f"👤 **Профіль:** {name_in_db}\n🆔 **ID:** `{user[0]}`\n💰 **Баланс:** `{user[2]}` ⭐", 
         parse_mode="Markdown"
     )
 
@@ -247,7 +255,8 @@ async def cmd_profile(message: types.Message):
 @dp.message(Command("bonus"))
 async def cmd_bonus(message: types.Message):
     user_id = message.from_user.id
-    user = get_user(user_id, message.from_user.username or "Гравець")
+    display_name = message.from_user.username or message.from_user.full_name or "Гравець"
+    user = get_user(user_id, display_name)
     now = int(time.time())
     last_bonus = user[3]
     
@@ -276,7 +285,9 @@ async def cmd_top(message: types.Message):
 
     text = "🏆 **ТОП-10 Гравців:**\n\n"
     for idx, (username, balance) in enumerate(leaders, 1):
-        text += f"{idx}. **{username}** — `{balance}` ⭐\n"
+        name = username if username else "Гравець"
+        text += f"{idx}. **{name}** — `{balance}` ⭐\n"
+        
     await message.answer(text, parse_mode="Markdown")
 
 # ==================== 5. КНОПКИ ТА КАСТОМНА СТАВКА ====================
@@ -309,7 +320,8 @@ async def process_custom_bet_input(message: types.Message, state: FSMContext):
         return
 
     user_id = message.from_user.id
-    user = get_user(user_id, message.from_user.username or "Гравець")
+    display_name = message.from_user.username or message.from_user.full_name or "Гравець"
+    user = get_user(user_id, display_name)
 
     if user[2] < amount:
         await message.answer(f"❌ Недостатньо зірочок! Ваш баланс: {user[2]} ⭐")
@@ -332,7 +344,8 @@ async def process_bet(callback: types.CallbackQuery):
 
     amount = int(callback.data.split("_")[1])
     user_id = callback.from_user.id
-    user = get_user(user_id, callback.from_user.username or "Гравець")
+    display_name = callback.from_user.username or callback.from_user.full_name or "Гравець"
+    user = get_user(user_id, display_name)
 
     if user[2] < amount:
         await callback.answer("❌ Нестача зірочок на балансі! Натисніть «🎁 Бонус»", show_alert=True)
