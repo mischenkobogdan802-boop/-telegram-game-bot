@@ -6,7 +6,11 @@ import sqlite3
 import time
 from aiogram import Bot, Dispatcher, F, types
 from aiogram.filters import Command
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, LabeledPrice, PreCheckoutQuery
+from aiogram.types import (
+    InlineKeyboardMarkup, InlineKeyboardButton, 
+    ReplyKeyboardMarkup, KeyboardButton,
+    LabeledPrice, PreCheckoutQuery
+)
 from aiogram.exceptions import TelegramBadRequest
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
@@ -14,9 +18,6 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 logging.basicConfig(level=logging.INFO)
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
-
-# Список чатів, де увімкнено автоматичний live-показ
-active_chats = set()
 
 # ==================== 1. БАЗА ДАНИХ (SQLite) ====================
 def init_db():
@@ -66,7 +67,7 @@ class CrashGame:
         self.crashed = False
         self.target_multiplier = 1.00
         self.bets = {}  # user_id: {"amount": int, "username": str, "won": bool}
-        self.live_messages = {} # chat_id: message_id
+        self.live_messages = {}  # chat_id: message_id
 
     def generate_crash_multiplier(self) -> float:
         rand = random.random()
@@ -79,33 +80,26 @@ class CrashGame:
 
 game = CrashGame()
 
-# Допоміжна функція оновлення live-повідомлення у всіх чатах
+# Оновлення live-повідомлення у чаті
 async def update_live_messages(text: str, reply_markup=None):
-    for chat_id in list(active_chats):
-        msg_id = game.live_messages.get(chat_id)
-        if not msg_id:
-            try:
-                msg = await bot.send_message(chat_id, text, reply_markup=reply_markup, parse_mode="Markdown")
-                game.live_messages[chat_id] = msg.message_id
-            except Exception:
-                pass
-        else:
-            try:
-                await bot.edit_message_text(text, chat_id=chat_id, message_id=msg_id, reply_markup=reply_markup, parse_mode="Markdown")
-            except TelegramBadRequest:
-                pass
-            except Exception:
-                # Якщо повідомлення видалили, створюємо нове
-                try:
-                    msg = await bot.send_message(chat_id, text, reply_markup=reply_markup, parse_mode="Markdown")
-                    game.live_messages[chat_id] = msg.message_id
-                except Exception:
-                    pass
+    for chat_id, msg_id in list(game.live_messages.items()):
+        try:
+            await bot.edit_message_text(
+                text, 
+                chat_id=chat_id, 
+                message_id=msg_id, 
+                reply_markup=reply_markup, 
+                parse_mode="Markdown"
+            )
+        except TelegramBadRequest:
+            pass
+        except Exception:
+            pass
 
-# ==================== 3. АВТОМАТИЧНИЙ ЦИКЛ (20 секунд) ====================
+# ==================== 3. АВТОМАТИЧНИЙ ЦИКЛ ПОЛЬОТУ (20 сек) ====================
 async def crash_game_loop():
     while True:
-        # --- ФАЗА 1: Очікування ставок (12 секунд) ---
+        # --- ФАЗА 1: Очікування ставок (10 секунд) ---
         game.is_running = False
         game.crashed = False
         game.bets.clear()
@@ -148,7 +142,7 @@ async def crash_game_loop():
             [InlineKeyboardButton(text="💰 ЗАБРАТИ ВИГРАШ", callback_data="cashout")]
         ])
 
-        # --- ФАЗА 3: Анімація польоту у чаті ---
+        # --- ФАЗА 3: Анімація польоту ---
         step = 0.08
         while game.current_multiplier < game.target_multiplier:
             text_fly = (
@@ -176,36 +170,76 @@ async def crash_game_loop():
         await update_live_messages(text_crash, None)
         await asyncio.sleep(4)
 
-# ==================== 4. КОМАНДИ ====================
+# ==================== 4. МЕНЮ ТА КОМАНДИ ====================
+
+# Текстова клавіатура внизу екрана
+def main_menu_keyboard():
+    return ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton(text="✈️ Грати (Crash)")],
+            [KeyboardButton(text="👤 Профіль"), KeyboardButton(text="🎁 Бонус")],
+            [KeyboardButton(text="🏆 Топ"), KeyboardButton(text="⭐ Купити Stars")]
+        ],
+        resize_keyboard=True
+    )
 
 @dp.message(Command("start"))
 async def cmd_start(message: types.Message):
     get_user(message.from_user.id, message.from_user.username or "Гравець")
-    active_chats.add(message.chat.id)
     text = (
-        "👋 **Привіт! Це Crash Game.**\n\n"
-        "✈️ Автоматичний табло-політ активовано!\n"
-        "Повідомлення буде оновлюватися кожні 20 секунд прямо в цьому чаті.\n\n"
-        "📌 **Команди:**\n"
-        "🔹 /start_live — Запустити/відновити live-табло у чаті\n"
-        "🔹 /profile — Особистий профіль та баланс\n"
-        "🔹 /bonus — Отримати +5 ⭐ (раз на 24 год)\n"
-        "🔹 /top — Таблиця лідерів\n"
-        "🔹 /stars — Купити Telegram Stars ⭐"
+        "👋 **Вітаємо у Crash Game!**\n\n"
+        "Незмінне правило: **зліт кожні 20 секунд!**\n"
+        "Користуйтеся кнопками внизу екрана для навігації."
     )
-    await message.answer(text, parse_mode="Markdown")
+    await message.answer(text, reply_markup=main_menu_keyboard(), parse_mode="Markdown")
+    await spawn_live_game(message.chat.id)
 
-@dp.message(Command("start_live"))
-async def cmd_start_live(message: types.Message):
-    active_chats.add(message.chat.id)
-    game.live_messages.pop(message.chat.id, None)
-    await message.answer("🔄 **Live-трансляцію польоту увімкнено!** Очікуйте оновлення табло...")
+# Виклики гри та опуск табло вниз чату
+@dp.message(F.text == "✈️ Грати (Crash)")
+@dp.message(Command("fly"))
+async def handle_fly(message: types.Message):
+    await spawn_live_game(message.chat.id)
 
+async def spawn_live_game(chat_id: int):
+    # Очищаємо прип'язку зі старим повідомленням
+    game.live_messages.pop(chat_id, None)
+
+    # Відправляємо СВІЖЕ табло в самий низ
+    if not game.is_running:
+        kb_bet = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="💵 Ставка 1 ⭐", callback_data="bet_1"),
+             InlineKeyboardButton(text="💵 Ставка 5 ⭐", callback_data="bet_5")]
+        ])
+        msg = await bot.send_message(
+            chat_id, 
+            "⏳ **ЛІТАК НА ЗАПРАВЦІ!**\nОчікуйте злету...", 
+            reply_markup=kb_bet, 
+            parse_mode="Markdown"
+        )
+    else:
+        kb_fly = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="💰 ЗАБРАТИ ВИГРАШ", callback_data="cashout")]
+        ])
+        msg = await bot.send_message(
+            chat_id, 
+            f"✈️ **ЛІТАК У ПОЛЬОТІ!**\n📈 Поточний X: **{game.current_multiplier}x**", 
+            reply_markup=kb_fly, 
+            parse_mode="Markdown"
+        )
+    
+    # Тепер бот редагуватиме тільки це НОВЕ повідомлення!
+    game.live_messages[chat_id] = msg.message_id
+
+@dp.message(F.text == "👤 Профіль")
 @dp.message(Command("profile"))
 async def cmd_profile(message: types.Message):
     user = get_user(message.from_user.id, message.from_user.username or "Гравець")
-    await message.answer(f"👤 **Профіль:** {user[1]}\n💰 **Баланс:** `{user[2]}` ⭐", parse_mode="Markdown")
+    await message.answer(
+        f"👤 **Профіль:** {user[1]}\n🆔 **ID:** `{user[0]}`\n💰 **Баланс:** `{user[2]}` ⭐", 
+        parse_mode="Markdown"
+    )
 
+@dp.message(F.text == "🎁 Бонус")
 @dp.message(Command("bonus"))
 async def cmd_bonus(message: types.Message):
     user_id = message.from_user.id
@@ -227,6 +261,7 @@ async def cmd_bonus(message: types.Message):
         minutes = (remaining % 3600) // 60
         await message.answer(f"⏳ Бонус буде доступний через **{hours} год {minutes} хв**.")
 
+@dp.message(F.text == "🏆 Топ")
 @dp.message(Command("top"))
 async def cmd_top(message: types.Message):
     conn = sqlite3.connect("database.db")
@@ -240,7 +275,7 @@ async def cmd_top(message: types.Message):
         text += f"{idx}. **{username}** — `{balance}` ⭐\n"
     await message.answer(text, parse_mode="Markdown")
 
-# ==================== 5. КНОПКИ ГРИ ====================
+# ==================== 5. КНОПКИ СТАВОК ====================
 
 @dp.callback_query(F.data.startswith("bet_"))
 async def process_bet(callback: types.CallbackQuery):
@@ -253,7 +288,7 @@ async def process_bet(callback: types.CallbackQuery):
     user = get_user(user_id, callback.from_user.username or "Гравець")
 
     if user[2] < amount:
-        await callback.answer("❌ Недостатньо зірочок на балансі! Напишіть /bonus", show_alert=True)
+        await callback.answer("❌ Нестача зірочок на балансі! Натисніть «🎁 Бонус»", show_alert=True)
         return
 
     update_balance(user_id, -amount)
@@ -263,7 +298,7 @@ async def process_bet(callback: types.CallbackQuery):
     conn.commit()
     conn.close()
 
-    await callback.answer(f"✅ Ваша ставка {amount} ⭐ прийнята на наступний запуск!", show_alert=True)
+    await callback.answer(f"✅ Ставка {amount} ⭐ прийнята!", show_alert=True)
 
 @dp.callback_query(F.data == "cashout")
 async def process_cashout(callback: types.CallbackQuery):
@@ -287,6 +322,7 @@ async def process_cashout(callback: types.CallbackQuery):
 
 # ==================== 6. TELEGRAM STARS ====================
 
+@dp.message(F.text == "⭐ Купити Stars")
 @dp.message(Command("stars"))
 async def cmd_stars(message: types.Message):
     kb = InlineKeyboardMarkup(inline_keyboard=[
