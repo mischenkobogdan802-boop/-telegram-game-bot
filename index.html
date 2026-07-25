@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crash Game</title>
+    <!-- Підключаємо скрипт Telegram WebApp -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body {
+            background-color: #121212;
+            color: #ffffff;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            height: 90vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .game-card {
+            background-color: #1e1e1e;
+            width: 100%;
+            border-radius: 16px;
+            padding: 40px 20px;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            margin-top: 20px;
+        }
+
+        .status {
+            font-size: 18px;
+            color: #888;
+            margin-bottom: 10px;
+        }
+
+        .multiplier {
+            font-size: 56px;
+            font-weight: 800;
+            color: #00e676; /* Зелений колір під час росту */
+            transition: color 0.2s;
+        }
+
+        .multiplier.crashed {
+            color: #ff5252; /* Червоний, коли "Улетів" */
+        }
+
+        .controls {
+            width: 100%;
+        }
+
+        .bet-btn {
+            width: 100%;
+            background-color: #0088cc;
+            color: white;
+            border: none;
+            padding: 16px;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 12px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 136, 204, 0.4);
+        }
+
+        .bet-btn:active {
+            transform: scale(0.98);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="game-card">
+        <div class="status" id="status">Зліт через 3 сек...</div>
+        <div class="multiplier" id="rate">1.00x</div>
+    </div>
+
+    <div class="controls">
+        <button class="bet-btn" onclick="makeBet()">Зробити ставку 💎 1.00</button>
+    </div>
+
+    <script>
+        // Ініціалізація Telegram WebApp
+        const tg = window.Telegram.WebApp;
+        tg.expand(); // Розгортаємо додаток на весь екран
+
+        let currentRate = 1.00;
+        let timer = null;
+
+        // Проста анімація росту коефіцієнта для тесту
+        function startFlight() {
+            document.getElementById('status').innerText = "У ЛЬОТІ...";
+            const rateEl = document.getElementById('rate');
+            rateEl.classList.remove('crashed');
+            
+            currentRate = 1.00;
+            
+            timer = setInterval(() => {
+                currentRate += 0.01;
+                rateEl.innerText = currentRate.toFixed(2) + "x";
+
+                // Рандомний "Краш" (випадкове падіння)
+                if (Math.random() < 0.02 && currentRate > 1.20) {
+                    clearInterval(timer);
+                    rateEl.innerText = currentRate.toFixed(2) + "x";
+                    rateEl.classList.add('crashed');
+                    document.getElementById('status').innerText = "УЛЕТІВ!";
+                    
+                    // Перезапуск через 3 секунди
+                    setTimeout(startFlight, 3000);
+                }
+            }, 100);
+        }
+
+        function makeBet() {
+            // Вібрація при натисканні (як у справжніх Telegram-іграх)
+            if (tg.HapticFeedback) {
+                tg.HapticFeedback.impactOccurred('medium');
+            }
+            alert("Ставку 1.00 💎 прийнято!");
+        }
+
+        // Запускаємо гру при відкритті
+        startFlight();
+    </script>
+</body>
+</html>
