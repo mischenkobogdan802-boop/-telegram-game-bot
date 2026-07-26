@@ -416,15 +416,16 @@ async def admin_give_amount(message: types.Message, state: FSMContext):
         data = await state.get_data()
         target_id = data["target_id"]
         
+        # Гарантуємо, що запис користувача існує в БД
+        get_user(target_id, "Гравець")
+        
+        # Оновлюємо баланс
         update_balance(target_id, amount)
         
-        conn = sqlite3.connect("database.db")
-        cursor = conn.cursor()
-        cursor.execute("SELECT balance FROM users WHERE user_id = ?", (target_id,))
-        row = cursor.fetchone()
-        conn.close()
+        # Отримуємо точний новий баланс з бази
+        updated_user = get_user(target_id, "Гравець")
+        new_balance = updated_user[2]
         
-        new_balance = row[0] if row else 0
         await state.clear()
 
         await message.answer(f"✅ Успішно змінено баланс користувача `{target_id}` на `{amount}` ⭐!", parse_mode="Markdown")
