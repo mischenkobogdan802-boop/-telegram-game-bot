@@ -4,6 +4,7 @@ import logging
 import random
 import sqlite3
 import time
+import json
 from aiohttp import web
 from aiogram import Bot, Dispatcher, F, types
 from aiogram.filters import Command
@@ -25,7 +26,6 @@ logging.basicConfig(level=logging.INFO)
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 
-# Стан для очікування кастомної ставки від користувача
 class GameStates(StatesGroup):
     waiting_for_custom_bet = State()
 
@@ -110,7 +110,6 @@ async def update_live_messages(text: str, reply_markup=None):
 # ==================== 3. АВТОМАТИЧНИЙ ЦИКЛ ПОЛЬОТУ ====================
 async def crash_game_loop():
     while True:
-        # --- ФАЗА 1: Очікування ставок (10 секунд) ---
         game.is_running = False
         game.crashed = False
         game.bets.clear()
@@ -137,7 +136,6 @@ async def crash_game_loop():
             await update_live_messages(text_wait, kb_bet)
             await asyncio.sleep(2)
 
-        # --- ФАЗА 2: Початок польоту ---
         game.is_running = True
         game.target_multiplier = game.generate_crash_multiplier()
         game.current_multiplier = 1.00
@@ -155,7 +153,6 @@ async def crash_game_loop():
             [InlineKeyboardButton(text="💰 ЗАБРАТИ ВИГРАШ", callback_data="cashout")]
         ])
 
-        # --- ФАЗА 3: Анімація польоту ---
         step = 0.08
         while game.current_multiplier < game.target_multiplier:
             text_fly = (
@@ -173,7 +170,6 @@ async def crash_game_loop():
                 game.current_multiplier = game.target_multiplier
                 break
 
-        # --- ФАЗА 4: КРАШ ---
         game.crashed = True
         text_crash = (
             f"💥 **ЛІТАК КРАШНУВСЯ на {game.current_multiplier}x!**\n\n"
@@ -185,34 +181,37 @@ async def crash_game_loop():
 
 # ==================== 4. МЕНЮ ТА КОМАНДИ ====================
 
-def main_menu_keyboard():
-    return ReplyKeyboardMarkup(
+@dp.message(Command("start"))
+async def cmd_start(message: types.Message):
+    user_name = message.from_user.username or message.from_user.full_name or "Гравець"
+    user_data = get_user(message.from_user.id, user_name)
+    user_balance = user_data[2]
+
+    user_webapp_url = f"{WEBAPP_URL}?balance={user_balance}"
+
+    text = (
+        "👋 **Вітаємо у Crash Game!**\n\n"
+        "🎮 Натисніть кнопку **«📱 Відкрити WebApp»** нижче, щоб запустити Mini App із вашим збереженим балансом!\n\n"
+        "Або грайте в текстовому режимі за допомогою нижнього меню."
+    )
+    
+    inline_webapp_kb = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="🚀 Запустити Crash WebApp 🎮", web_app=WebAppInfo(url=user_webapp_url))]
+        ]
+    )
+    
+    reply_kb = ReplyKeyboardMarkup(
         keyboard=[
-            [KeyboardButton(text="📱 Відкрити WebApp (Mini App)", web_app=WebAppInfo(url=WEBAPP_URL))],
+            [KeyboardButton(text="📱 Відкрити WebApp (Mini App)", web_app=WebAppInfo(url=user_webapp_url))],
             [KeyboardButton(text="✈️ Грати (Текст)")],
             [KeyboardButton(text="👤 Профіль"), KeyboardButton(text="🎁 Бонус")],
             [KeyboardButton(text="🏆 Топ"), KeyboardButton(text="⭐ Купити Stars")]
         ],
         resize_keyboard=True
     )
-
-@dp.message(Command("start"))
-async def cmd_start(message: types.Message):
-    user_name = message.from_user.username or message.from_user.full_name or "Гравець"
-    get_user(message.from_user.id, user_name)
-    text = (
-        "👋 **Вітаємо у Crash Game!**\n\n"
-        "🎮 Натисніть кнопку **«📱 Відкрити WebApp»** нижче, щоб запустити красивий інтерактивний Mini App!\n\n"
-        "Або грайте в текстовому режимі за допомогою нижнього меню."
-    )
     
-    inline_webapp_kb = InlineKeyboardMarkup(
-        inline_keyboard=[
-            [InlineKeyboardButton(text="🚀 Запустити Crash WebApp 🎮", web_app=WebAppInfo(url=WEBAPP_URL))]
-        ]
-    )
-    
-    await message.answer(text, reply_markup=main_menu_keyboard(), parse_mode="Markdown")
+    await message.answer(text, reply_markup=reply_kb, parse_mode="Markdown")
     await message.answer("👇 Натисніть для запуску графічної гри:", reply_markup=inline_webapp_kb)
     await spawn_live_game(message.chat.id)
 
@@ -255,7 +254,6 @@ async def spawn_live_game(chat_id: int):
 async def cmd_profile(message: types.Message):
     display_name = message.from_user.username or message.from_user.full_name or "Гравець"
     user = get_user(message.from_user.id, display_name)
-    
     name_in_db = user[1] if user[1] else "Гравець"
     
     await message.answer(
@@ -279,7 +277,7 @@ async def cmd_bonus(message: types.Message):
         cursor.execute("UPDATE users SET last_bonus = ? WHERE user_id = ?", (now, user_id))
         conn.commit()
         conn.close()
-        await message.answer("🎁 Ви успішно отримали щоденний бонус: **+5 ⭐**!")
+        await message.answer("🎁 Ви успішно отримали щоденний бонус: **+5 ⭐**!\n\nТепер напишіть /start, щоб оновити посилання в гри!")
     else:
         remaining = 86400 - (now - last_bonus)
         hours = remaining // 3600
@@ -302,7 +300,34 @@ async def cmd_top(message: types.Message):
         
     await message.answer(text, parse_mode="Markdown")
 
-# ==================== 5. КНОПКИ ТА КАСТОМНА СТАВКА ====================
+# ==================== 5. ЗБЕРЕЖЕННЯ ДАНИХ З WEBAPP ====================
+
+@dp.message(F.web_app_data)
+async def handle_webapp_data(message: types.Message):
+    raw_data = message.web_app_data.data
+    
+    if raw_data == "open_stars":
+        await cmd_stars(message)
+        return
+    elif raw_data == "open_bonus":
+        await cmd_bonus(message)
+        return
+
+    try:
+        data = json.loads(raw_data)
+        user_id = message.from_user.id
+        new_balance = data.get("new_balance")
+
+        if new_balance is not None:
+            conn = sqlite3.connect("database.db")
+            cursor = conn.cursor()
+            cursor.execute("UPDATE users SET balance = ? WHERE user_id = ?", (new_balance, user_id))
+            conn.commit()
+            conn.close()
+    except Exception as e:
+        logging.error(f"Помилка обробки WebApp даних: {e}")
+
+# ==================== 6. КНОПКИ ТА КАСТОМНА СТАВКА ====================
 
 @dp.callback_query(F.data == "custom_bet")
 async def ask_custom_bet(callback: types.CallbackQuery, state: FSMContext):
@@ -392,7 +417,7 @@ async def process_cashout(callback: types.CallbackQuery):
 
     await callback.answer(f"🎉 Забрано {win_amount} ⭐ на {game.current_multiplier}x!", show_alert=True)
 
-# ==================== 6. TELEGRAM STARS (ВІД 50 ДО 10 000) ====================
+# ==================== 7. TELEGRAM STARS ====================
 
 @dp.message(F.text == "⭐ Купити Stars")
 @dp.message(Command("stars"))
@@ -435,7 +460,7 @@ async def process_successful_payment(message: types.Message):
     update_balance(message.from_user.id, stars_added)
     await message.answer(f"🎉 Дякуємо за підтримку! На ваш баланс зараховано **+{stars_added} ⭐**")
 
-# ==================== 7. ВЕБ-СЕРВЕР ДЛЯ RENDER ТА ЗАПУСК ====================
+# ==================== 8. ВЕБ-СЕРВЕР ТА ЗАПУСК ====================
 
 async def handle(request):
     return web.Response(text="Bot is running!")
@@ -444,7 +469,6 @@ async def main():
     init_db()
     asyncio.create_task(crash_game_loop())
     
-    # Вбудований веб-сервер, щоб Render бачив запуск порту
     app = web.Application()
     app.router.add_get("/", handle)
     runner = web.AppRunner(app)
@@ -453,7 +477,6 @@ async def main():
     site = web.TCPSite(runner, "0.0.0.0", port)
     await site.start()
     
-    # Запускаємо бота
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
