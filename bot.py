@@ -9,13 +9,16 @@ from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import (
-    InlineKeyboardMarkup, InlineKeyboardButton, 
+    InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo,
     ReplyKeyboardMarkup, KeyboardButton,
     LabeledPrice, PreCheckoutQuery
 )
 from aiogram.exceptions import TelegramBadRequest
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
+
+# Посилання на твій WebApp (GitHub Pages)
+WEBAPP_URL = "https://mischenkobogdan802-boop.github.io/-telegram-game-bot/"
 
 logging.basicConfig(level=logging.INFO)
 bot = Bot(token=BOT_TOKEN)
@@ -47,7 +50,6 @@ def init_db():
     conn.close()
 
 def get_user(user_id: int, username: str):
-    # Захист від порожнього імені
     safe_username = username if username else "Гравець"
     
     conn = sqlite3.connect("database.db")
@@ -185,7 +187,8 @@ async def crash_game_loop():
 def main_menu_keyboard():
     return ReplyKeyboardMarkup(
         keyboard=[
-            [KeyboardButton(text="✈️ Грати (Crash)")],
+            [KeyboardButton(text="📱 Відкрити WebApp (Mini App)", web_app=WebAppInfo(url=WEBAPP_URL))],
+            [KeyboardButton(text="✈️ Грати (Текст)")],
             [KeyboardButton(text="👤 Профіль"), KeyboardButton(text="🎁 Бонус")],
             [KeyboardButton(text="🏆 Топ"), KeyboardButton(text="⭐ Купити Stars")]
         ],
@@ -198,13 +201,22 @@ async def cmd_start(message: types.Message):
     get_user(message.from_user.id, user_name)
     text = (
         "👋 **Вітаємо у Crash Game!**\n\n"
-        "Незмінне правило: **зліт кожні 20 секунд!**\n"
-        "Користуйтеся кнопками внизу екрана для навігації."
+        "🎮 Натисніть кнопку **«📱 Відкрити WebApp»** нижче, щоб запустити красивий інтерактивний Mini App!\n\n"
+        "Або грайте в текстовому режимі за допомогою нижнього меню."
     )
+    
+    # Кнопка під повідомленням
+    inline_webapp_kb = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="🚀 Запустити Crash WebApp 🎮", web_app=WebAppInfo(url=WEBAPP_URL))]
+        ]
+    )
+    
     await message.answer(text, reply_markup=main_menu_keyboard(), parse_mode="Markdown")
+    await message.answer("👇 Натисніть для запуску графічної гри:", reply_markup=inline_webapp_kb)
     await spawn_live_game(message.chat.id)
 
-@dp.message(F.text == "✈️ Грати (Crash)")
+@dp.message(F.text == "✈️ Грати (Текст)")
 @dp.message(Command("fly"))
 async def handle_fly(message: types.Message):
     await spawn_live_game(message.chat.id)
