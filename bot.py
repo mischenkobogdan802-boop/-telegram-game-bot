@@ -19,8 +19,8 @@ from aiogram.exceptions import TelegramBadRequest
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
-# ⚠️ ВКАЖИ СВІЙ TELEGRAM ID СЮДИ!
-ADMIN_ID = 7842251789
+# 👑 Твій Telegram ID адміністратора
+ADMIN_ID = 7842251789  
 
 WEBAPP_URL = "https://mischenkobogdan802-boop.github.io/-telegram-game-bot/"
 
@@ -63,9 +63,9 @@ def get_user(user_id: int, username: str):
     cursor.execute("SELECT user_id, username, balance, last_bonus FROM users WHERE user_id = ?", (user_id,))
     row = cursor.fetchone()
     if not row:
-        cursor.execute("INSERT INTO users (user_id, username, balance, last_bonus) VALUES (?, ?, 5, 0)", (user_id, safe_username))
+        cursor.execute("INSERT INTO users (user_id, username, balance, last_bonus) VALUES (?, ?, 0, 0)", (user_id, safe_username))
         conn.commit()
-        row = (user_id, safe_username, 5, 0)
+        row = (user_id, safe_username, 0, 0)
     conn.close()
     return row
 
@@ -73,13 +73,6 @@ def update_balance(user_id: int, delta: int):
     conn = sqlite3.connect("database.db")
     cursor = conn.cursor()
     cursor.execute("UPDATE users SET balance = balance + ? WHERE user_id = ?", (delta, user_id))
-    conn.commit()
-    conn.close()
-
-def set_balance(user_id: int, new_balance: int):
-    conn = sqlite3.connect("database.db")
-    cursor = conn.cursor()
-    cursor.execute("UPDATE users SET balance = ? WHERE user_id = ?", (new_balance, user_id))
     conn.commit()
     conn.close()
 
@@ -196,14 +189,14 @@ async def crash_game_loop():
 @dp.message(Command("start"))
 async def cmd_start(message: types.Message):
     user_name = message.from_user.username or message.from_user.full_name or "Гравець"
-    get_user(message.from_user.id, user_name)
+    user_data = get_user(message.from_user.id, user_name)
+    user_balance = user_data[2]
 
-    # Використовуємо чистий WEBAPP_URL без запеченого параметра балансу
-    user_webapp_url = WEBAPP_URL
+    user_webapp_url = f"{WEBAPP_URL}?balance={user_balance}"
 
     text = (
         "👋 **Вітаємо у Crash Game!**\n\n"
-        "🎮 Натисніть кнопку **«📱 Відкрити WebApp»** нижче, щоб запустити Mini App!\n\n"
+        "🎮 Натисніть кнопку **«📱 Відкрити WebApp»** нижче, щоб запустити Mini App із вашим збереженим балансом!\n\n"
         "Або грайте в текстовому режимі за допомогою нижнього меню."
     )
     
@@ -267,9 +260,16 @@ async def cmd_profile(message: types.Message):
     display_name = message.from_user.username or message.from_user.full_name or "Гравець"
     user = get_user(message.from_user.id, display_name)
     name_in_db = user[1] if user[1] else "Гравець"
+    current_balance = user[2]
+    
+    user_webapp_url = f"{WEBAPP_URL}?balance={current_balance}"
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🚀 Відкрити WebApp з актуальним балансом 🎮", web_app=WebAppInfo(url=user_webapp_url))]
+    ])
     
     await message.answer(
-        f"👤 **Профіль:** {name_in_db}\n🆔 **ID:** `{user[0]}`\n💰 **Баланс:** `{user[2]}` ⭐", 
+        f"👤 **Профіль:** {name_in_db}\n🆔 **ID:** `{user[0]}`\n💰 **Баланс:** `{current_balance}` ⭐", 
+        reply_markup=kb,
         parse_mode="Markdown"
     )
 
@@ -284,12 +284,28 @@ async def cmd_bonus(message: types.Message):
     
     if now - last_bonus >= 86400:
         update_balance(user_id, 5)
+        
+        updated_user = get_user(user_id, display_name)
+        new_balance = updated_user[2]
+        
         conn = sqlite3.connect("database.db")
         cursor = conn.cursor()
         cursor.execute("UPDATE users SET last_bonus = ? WHERE user_id = ?", (now, user_id))
         conn.commit()
         conn.close()
-        await message.answer("🎁 Ви успішно отримали щоденний бонус: **+5 ⭐**!")
+
+        new_webapp_url = f"{WEBAPP_URL}?balance={new_balance}"
+        kb = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="🚀 Грати з оновленим балансом 🎮", web_app=WebAppInfo(url=new_webapp_url))]
+        ])
+
+        await message.answer(
+            f"🎁 Ви успішно отримали щоденний бонус: **+5 ⭐**!\n"
+            f"💰 Ваш новий баланс: **{new_balance} ⭐**\n\n"
+            f"Запускайте WebApp за кнопкою нижче 👇", 
+            reply_markup=kb,
+            parse_mode="Markdown"
+        )
     else:
         remaining = 86400 - (now - last_bonus)
         hours = remaining // 3600
@@ -401,11 +417,30 @@ async def admin_give_amount(message: types.Message, state: FSMContext):
         target_id = data["target_id"]
         
         update_balance(target_id, amount)
+        
+        conn = sqlite3.connect("database.db")
+        cursor = conn.cursor()
+        cursor.execute("SELECT balance FROM users WHERE user_id = ?", (target_id,))
+        row = cursor.fetchone()
+        conn.close()
+        
+        new_balance = row[0] if row else 0
         await state.clear()
 
         await message.answer(f"✅ Успішно змінено баланс користувача `{target_id}` на `{amount}` ⭐!", parse_mode="Markdown")
+        
         try:
-            await bot.send_message(target_id, f"🎁 Адміністратор змінив ваш баланс на **{amount:+d} ⭐**!")
+            target_webapp_url = f"{WEBAPP_URL}?balance={new_balance}"
+            kb = InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="🚀 Запустити WebApp 🎮", web_app=WebAppInfo(url=target_webapp_url))]
+            ])
+            await bot.send_message(
+                target_id, 
+                f"🎁 Адміністратор змінив ваш баланс на **{amount:+d} ⭐**!\n"
+                f"💰 Ваш актуальний баланс: **{new_balance} ⭐**",
+                reply_markup=kb,
+                parse_mode="Markdown"
+            )
         except Exception:
             pass
     except ValueError:
@@ -416,9 +451,6 @@ async def admin_give_amount(message: types.Message, state: FSMContext):
 @dp.message(F.web_app_data)
 async def handle_webapp_data(message: types.Message):
     raw_data = message.web_app_data.data
-    user_id = message.from_user.id
-    display_name = message.from_user.username or message.from_user.full_name or "Гравець"
-    get_user(user_id, display_name)
     
     if raw_data == "open_stars":
         await cmd_stars(message)
@@ -429,16 +461,15 @@ async def handle_webapp_data(message: types.Message):
 
     try:
         data = json.loads(raw_data)
+        user_id = message.from_user.id
         new_balance = data.get("new_balance")
 
         if new_balance is not None:
-            set_balance(user_id, int(new_balance))
-            
-            action = data.get("action")
-            if action == "win":
-                amount = data.get("amount", 0)
-                await message.answer(f"🎉 **Чудовий виграш!** Ваш новий баланс: **{new_balance} ⭐**!")
-
+            conn = sqlite3.connect("database.db")
+            cursor = conn.cursor()
+            cursor.execute("UPDATE users SET balance = ? WHERE user_id = ?", (new_balance, user_id))
+            conn.commit()
+            conn.close()
     except Exception as e:
         logging.error(f"Помилка обробки WebApp даних: {e}")
 
