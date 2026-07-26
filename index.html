@@ -221,7 +221,7 @@
     </div>
   </div>
 
-  <!-- ВКЛАДКА 2: ПОПОВНЕННЯ (НОВА) -->
+  <!-- ВКЛАДКА 2: ПОПОВНЕННЯ -->
   <div id="tab-deposit" class="tab-content">
     <div class="card">
       <h2>💳 Поповнити Баланс</h2>
@@ -288,10 +288,9 @@
     const tg = window.Telegram.WebApp;
     tg.expand();
 
-    // Початковий баланс 0
     let userBalance = 0;
 
-    // Дані гравця з Telegram
+    // Отримання даних користувача Telegram
     const user = tg.initDataUnsafe?.user;
     if (user) {
       document.getElementById('username-display').innerText = user.first_name;
@@ -299,9 +298,28 @@
       document.getElementById('prof-id').innerText = user.id;
     }
 
+    // Зчитування балансу з URL від бота
+    const urlParams = new URLSearchParams(window.location.search);
+    const balanceFromBot = urlParams.get('balance');
+    if (balanceFromBot !== null) {
+      userBalance = parseInt(balanceFromBot, 10);
+      updateBalanceDisplay();
+    }
+
     function updateBalanceDisplay() {
       document.getElementById('balance').innerText = userBalance;
       document.getElementById('prof-balance').innerText = userBalance;
+    }
+
+    function syncBalanceWithBot(action, amount) {
+      if (window.Telegram && window.Telegram.WebApp) {
+        const payload = JSON.stringify({
+          action: action,
+          amount: amount,
+          new_balance: userBalance
+        });
+        window.Telegram.WebApp.sendData(payload);
+      }
     }
 
     function switchTab(tabName, el) {
@@ -330,7 +348,7 @@
       tg.close();
     }
 
-    // Анімація гри
+    // Логіка гри та анімації
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
     
@@ -363,6 +381,9 @@
         hasBet = true;
         btn.innerText = 'ОЧІКУВАННЯ ЗЛЕТУ...';
         btn.classList.add('btn-disabled');
+        
+        syncBalanceWithBot('bet', currentBet);
+
       } else if (isRunning && hasBet) {
         const win = Math.floor(currentBet * multiplier);
         userBalance += win;
@@ -370,6 +391,8 @@
         hasBet = false;
         btn.innerText = `ЗАБРАНО +${win} ⭐`;
         btn.className = 'action-btn btn-disabled';
+
+        syncBalanceWithBot('win', win);
       }
     }
 
