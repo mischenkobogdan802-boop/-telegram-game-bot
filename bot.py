@@ -20,7 +20,7 @@ from aiogram.exceptions import TelegramBadRequest
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
 # ⚠️ ВКАЖИ СВІЙ TELEGRAM ID СЮДИ! (Можна дізнатися в розділі Профіль)
-ADMIN_ID =  7842251789
+ADMIN_ID = 7842251789
 
 WEBAPP_URL = "https://mischenkobogdan802-boop.github.io/-telegram-game-bot/"
 
@@ -73,6 +73,13 @@ def update_balance(user_id: int, delta: int):
     conn = sqlite3.connect("database.db")
     cursor = conn.cursor()
     cursor.execute("UPDATE users SET balance = balance + ? WHERE user_id = ?", (delta, user_id))
+    conn.commit()
+    conn.close()
+
+def set_balance(user_id: int, new_balance: int):
+    conn = sqlite3.connect("database.db")
+    cursor = conn.cursor()
+    cursor.execute("UPDATE users SET balance = ? WHERE user_id = ?", (new_balance, user_id))
     conn.commit()
     conn.close()
 
@@ -409,6 +416,9 @@ async def admin_give_amount(message: types.Message, state: FSMContext):
 @dp.message(F.web_app_data)
 async def handle_webapp_data(message: types.Message):
     raw_data = message.web_app_data.data
+    user_id = message.from_user.id
+    display_name = message.from_user.username or message.from_user.full_name or "Гравець"
+    get_user(user_id, display_name) # Переконуємось, що користувач є в БД
     
     if raw_data == "open_stars":
         await cmd_stars(message)
@@ -419,15 +429,16 @@ async def handle_webapp_data(message: types.Message):
 
     try:
         data = json.loads(raw_data)
-        user_id = message.from_user.id
         new_balance = data.get("new_balance")
 
         if new_balance is not None:
-            conn = sqlite3.connect("database.db")
-            cursor = conn.cursor()
-            cursor.execute("UPDATE users SET balance = ? WHERE user_id = ?", (new_balance, user_id))
-            conn.commit()
-            conn.close()
+            set_balance(user_id, int(new_balance))
+            
+            action = data.get("action")
+            if action == "win":
+                amount = data.get("amount", 0)
+                await message.answer(f"🎉 **Чудовий виграш!** Ви забрали +{amount} ⭐ u Mini App!")
+
     except Exception as e:
         logging.error(f"Помилка обробки WebApp даних: {e}")
 
