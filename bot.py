@@ -19,15 +19,21 @@ from aiogram.exceptions import TelegramBadRequest
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
-# Посилання на твій WebApp (GitHub Pages)
+# ⚠️ ВКАЖИ СВІЙ TELEGRAM ID СЮДИ! (Можна дізнатися в розділі Профіль)
+ADMIN_ID = 123456789  
+
 WEBAPP_URL = "https://mischenkobogdan802-boop.github.io/-telegram-game-bot/"
 
 logging.basicConfig(level=logging.INFO)
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 
+# ==================== СТАНИ FSM ====================
 class GameStates(StatesGroup):
     waiting_for_custom_bet = State()
+    waiting_for_broadcast = State()
+    waiting_for_give_id = State()
+    waiting_for_give_amount = State()
 
 # ==================== 1. БАЗА ДАНИХ (SQLite) ====================
 def init_db():
@@ -52,7 +58,6 @@ def init_db():
 
 def get_user(user_id: int, username: str):
     safe_username = username if username else "Гравець"
-    
     conn = sqlite3.connect("database.db")
     cursor = conn.cursor()
     cursor.execute("SELECT user_id, username, balance, last_bonus FROM users WHERE user_id = ?", (user_id,))
@@ -107,7 +112,7 @@ async def update_live_messages(text: str, reply_markup=None):
         except Exception:
             pass
 
-# ==================== 3. АВТОМАТИЧНИЙ ЦИКЛ ПОЛЬОТУ ====================
+# ==================== 3. АВТОМАТИЧНИЙ ЦИКЛ ====================
 async def crash_game_loop():
     while True:
         game.is_running = False
@@ -277,7 +282,7 @@ async def cmd_bonus(message: types.Message):
         cursor.execute("UPDATE users SET last_bonus = ? WHERE user_id = ?", (now, user_id))
         conn.commit()
         conn.close()
-        await message.answer("🎁 Ви успішно отримали щоденний бонус: **+5 ⭐**!\n\nТепер напишіть /start, щоб оновити посилання в гри!")
+        await message.answer("🎁 Ви успішно отримали щоденний бонус: **+5 ⭐**!\n\nТепер напишіть /start, щоб оновити посилання в грі!")
     else:
         remaining = 86400 - (now - last_bonus)
         hours = remaining // 3600
@@ -300,7 +305,107 @@ async def cmd_top(message: types.Message):
         
     await message.answer(text, parse_mode="Markdown")
 
-# ==================== 5. ЗБЕРЕЖЕННЯ ДАНИХ З WEBAPP ====================
+# ==================== 5. АДМІН-ПАНЕЛЬ ====================
+
+@dp.message(Command("admin"))
+async def cmd_admin(message: types.Message):
+    if message.from_user.id != ADMIN_ID:
+        return
+
+    conn = sqlite3.connect("database.db")
+    cursor = conn.cursor()
+    cursor.execute("SELECT COUNT(*), SUM(balance) FROM users")
+    total_users, total_stars = cursor.fetchone()
+    conn.close()
+
+    text = (
+        "👑 **АДМІН-ПАНЕЛЬ**\n\n"
+        f"👥 Усього користувачів: `{total_users or 0}`\n"
+        f"💎 Загальний баланс у грі: `{total_stars or 0}` ⭐\n\n"
+        "Оберіть дію нижче:"
+    )
+
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="📢 Розсилка новин", callback_data="admin_broadcast")],
+        [InlineKeyboardButton(text="➕ / ➖ Видати/Забрати Stars", callback_data="admin_give")]
+    ])
+
+    await message.answer(text, reply_markup=kb, parse_mode="Markdown")
+
+@dp.callback_query(F.data == "admin_broadcast")
+async def admin_broadcast_start(callback: types.CallbackQuery, state: FSMContext):
+    if callback.from_user.id != ADMIN_ID:
+        return
+    await state.set_state(GameStates.waiting_for_broadcast)
+    await callback.message.answer("📢 Надішліть текст повідомлення для розсилки всім гравцям:")
+    await callback.answer()
+
+@dp.message(GameStates.waiting_for_broadcast)
+async def admin_broadcast_send(message: types.Message, state: FSMContext):
+    await state.clear()
+    if message.from_user.id != ADMIN_ID:
+        return
+
+    conn = sqlite3.connect("database.db")
+    cursor = conn.cursor()
+    cursor.execute("SELECT user_id FROM users")
+    users = cursor.fetchall()
+    conn.close()
+
+    count = 0
+    for (u_id,) in users:
+        try:
+            await bot.send_message(u_id, f"📢 **НОВИНИ ТА ОНОВЛЕННЯ:**\n\n{message.text}", parse_mode="Markdown")
+            count += 1
+            await asyncio.sleep(0.05)
+        except Exception:
+            pass
+
+    await message.answer(f"✅ Розсилку успішно доставлено `{count}` користувачам!")
+
+@dp.callback_query(F.data == "admin_give")
+async def admin_give_start(callback: types.CallbackQuery, state: FSMContext):
+    if callback.from_user.id != ADMIN_ID:
+        return
+    await state.set_state(GameStates.waiting_for_give_id)
+    await callback.message.answer("✍️ Введіть **Telegram ID** користувача, якому хочете змінити баланс:")
+    await callback.answer()
+
+@dp.message(GameStates.waiting_for_give_id)
+async def admin_give_id(message: types.Message, state: FSMContext):
+    if message.from_user.id != ADMIN_ID:
+        return
+    if not message.text.isdigit():
+        await message.answer("❌ ID має складатися лише з цифр.")
+        return
+    
+    await state.update_data(target_id=int(message.text))
+    await state.set_state(GameStates.waiting_for_give_amount)
+    await callback_or_msg = message
+    await callback_or_msg.answer("✍️ Введіть **кількість ⭐** (наприклад: `100` щоб додати, або `-50` щоб забрати):")
+
+@dp.message(GameStates.waiting_for_give_amount)
+async def admin_give_amount(message: types.Message, state: FSMContext):
+    if message.from_user.id != ADMIN_ID:
+        return
+    
+    try:
+        amount = int(message.text)
+        data = await state.get_data()
+        target_id = data["target_id"]
+        
+        update_balance(target_id, amount)
+        await state.clear()
+
+        await message.answer(f"✅ Успішно змінено баланс користувача `{target_id}` на `{amount}` ⭐!", parse_mode="Markdown")
+        try:
+            await bot.send_message(target_id, f"🎁 Адміністратор змінив ваш баланс на **{amount:+d} ⭐**!")
+        except Exception:
+            pass
+    except ValueError:
+        await message.answer("❌ Будь ласка, введіть число (позитивне або негативне).")
+
+# ==================== 6. ЗБЕРЕЖЕННЯ ДАНИХ З WEBAPP ====================
 
 @dp.message(F.web_app_data)
 async def handle_webapp_data(message: types.Message):
@@ -327,7 +432,7 @@ async def handle_webapp_data(message: types.Message):
     except Exception as e:
         logging.error(f"Помилка обробки WebApp даних: {e}")
 
-# ==================== 6. КНОПКИ ТА КАСТОМНА СТАВКА ====================
+# ==================== 7. КНОПКИ ТА КУПІВЛЯ STARS ====================
 
 @dp.callback_query(F.data == "custom_bet")
 async def ask_custom_bet(callback: types.CallbackQuery, state: FSMContext):
@@ -417,8 +522,6 @@ async def process_cashout(callback: types.CallbackQuery):
 
     await callback.answer(f"🎉 Забрано {win_amount} ⭐ на {game.current_multiplier}x!", show_alert=True)
 
-# ==================== 7. TELEGRAM STARS ====================
-
 @dp.message(F.text == "⭐ Купити Stars")
 @dp.message(Command("stars"))
 async def cmd_stars(message: types.Message):
@@ -426,11 +529,7 @@ async def cmd_stars(message: types.Message):
         [InlineKeyboardButton(text="⭐ 50 Stars", callback_data="buy_50"),
          InlineKeyboardButton(text="⭐ 100 Stars", callback_data="buy_100")],
         [InlineKeyboardButton(text="⭐ 250 Stars", callback_data="buy_250"),
-         InlineKeyboardButton(text="⭐ 500 Stars", callback_data="buy_500")],
-        [InlineKeyboardButton(text="⭐ 1,000 Stars", callback_data="buy_1000"),
-         InlineKeyboardButton(text="⭐ 2,500 Stars", callback_data="buy_2500")],
-        [InlineKeyboardButton(text="⭐ 5,000 Stars", callback_data="buy_5000"),
-         InlineKeyboardButton(text="⭐ 10,000 Stars", callback_data="buy_10000")]
+         InlineKeyboardButton(text="⭐ 500 Stars", callback_data="buy_500")]
     ])
     await message.answer("Оберіть пакет Telegram Stars ⭐ для поповнення балансу:", reply_markup=kb)
 
@@ -460,7 +559,7 @@ async def process_successful_payment(message: types.Message):
     update_balance(message.from_user.id, stars_added)
     await message.answer(f"🎉 Дякуємо за підтримку! На ваш баланс зараховано **+{stars_added} ⭐**")
 
-# ==================== 8. ВЕБ-СЕРВЕР ТА ЗАПУСК ====================
+# ==================== 8. ЗАПУСК ВЕБ-СЕРВЕРА ====================
 
 async def handle(request):
     return web.Response(text="Bot is running!")
