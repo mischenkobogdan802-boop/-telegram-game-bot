@@ -381,8 +381,7 @@ async def admin_give_id(message: types.Message, state: FSMContext):
     
     await state.update_data(target_id=int(message.text))
     await state.set_state(GameStates.waiting_for_give_amount)
-    await callback_or_msg = message
-    await callback_or_msg.answer("✍️ Введіть **кількість ⭐** (наприклад: `100` щоб додати, або `-50` щоб забрати):")
+    await message.answer("✍️ Введіть **кількість ⭐** (наприклад: `100` щоб додати, або `-50` щоб забрати):")
 
 @dp.message(GameStates.waiting_for_give_amount)
 async def admin_give_amount(message: types.Message, state: FSMContext):
