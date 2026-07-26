@@ -19,7 +19,7 @@ from aiogram.exceptions import TelegramBadRequest
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
-# ⚠️ ВКАЖИ СВІЙ TELEGRAM ID СЮДИ! (Можна дізнатися в розділі Профіль)
+# ⚠️ ВКАЖИ СВІЙ TELEGRAM ID СЮДИ!
 ADMIN_ID = 7842251789
 
 WEBAPP_URL = "https://mischenkobogdan802-boop.github.io/-telegram-game-bot/"
@@ -63,9 +63,9 @@ def get_user(user_id: int, username: str):
     cursor.execute("SELECT user_id, username, balance, last_bonus FROM users WHERE user_id = ?", (user_id,))
     row = cursor.fetchone()
     if not row:
-        cursor.execute("INSERT INTO users (user_id, username, balance, last_bonus) VALUES (?, ?, 0, 0)", (user_id, safe_username))
+        cursor.execute("INSERT INTO users (user_id, username, balance, last_bonus) VALUES (?, ?, 5, 0)", (user_id, safe_username))
         conn.commit()
-        row = (user_id, safe_username, 0, 0)
+        row = (user_id, safe_username, 5, 0)
     conn.close()
     return row
 
@@ -196,14 +196,14 @@ async def crash_game_loop():
 @dp.message(Command("start"))
 async def cmd_start(message: types.Message):
     user_name = message.from_user.username or message.from_user.full_name or "Гравець"
-    user_data = get_user(message.from_user.id, user_name)
-    user_balance = user_data[2]
+    get_user(message.from_user.id, user_name)
 
-    user_webapp_url = f"{WEBAPP_URL}?balance={user_balance}"
+    # Використовуємо чистий WEBAPP_URL без запеченого параметра балансу
+    user_webapp_url = WEBAPP_URL
 
     text = (
         "👋 **Вітаємо у Crash Game!**\n\n"
-        "🎮 Натисніть кнопку **«📱 Відкрити WebApp»** нижче, щоб запустити Mini App із вашим збереженим балансом!\n\n"
+        "🎮 Натисніть кнопку **«📱 Відкрити WebApp»** нижче, щоб запустити Mini App!\n\n"
         "Або грайте в текстовому режимі за допомогою нижнього меню."
     )
     
@@ -289,7 +289,7 @@ async def cmd_bonus(message: types.Message):
         cursor.execute("UPDATE users SET last_bonus = ? WHERE user_id = ?", (now, user_id))
         conn.commit()
         conn.close()
-        await message.answer("🎁 Ви успішно отримали щоденний бонус: **+5 ⭐**!\n\nТепер напишіть /start, щоб оновити посилання в грі!")
+        await message.answer("🎁 Ви успішно отримали щоденний бонус: **+5 ⭐**!")
     else:
         remaining = 86400 - (now - last_bonus)
         hours = remaining // 3600
@@ -418,7 +418,7 @@ async def handle_webapp_data(message: types.Message):
     raw_data = message.web_app_data.data
     user_id = message.from_user.id
     display_name = message.from_user.username or message.from_user.full_name or "Гравець"
-    get_user(user_id, display_name) # Переконуємось, що користувач є в БД
+    get_user(user_id, display_name)
     
     if raw_data == "open_stars":
         await cmd_stars(message)
@@ -437,7 +437,7 @@ async def handle_webapp_data(message: types.Message):
             action = data.get("action")
             if action == "win":
                 amount = data.get("amount", 0)
-                await message.answer(f"🎉 **Чудовий виграш!** Ви забрали +{amount} ⭐ u Mini App!")
+                await message.answer(f"🎉 **Чудовий виграш!** Ваш новий баланс: **{new_balance} ⭐**!")
 
     except Exception as e:
         logging.error(f"Помилка обробки WebApp даних: {e}")
