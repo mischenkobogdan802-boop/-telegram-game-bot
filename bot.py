@@ -20,7 +20,7 @@ from aiogram.exceptions import TelegramBadRequest
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
 # ⚠️ ВКАЖИ СВІЙ TELEGRAM ID СЮДИ! (Можна дізнатися в розділі Профіль)
-ADMIN_ID = 123456789  
+ADMIN_ID =  7842251789
 
 WEBAPP_URL = "https://mischenkobogdan802-boop.github.io/-telegram-game-bot/"
 
