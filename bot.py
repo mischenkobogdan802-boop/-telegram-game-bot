@@ -4,6 +4,7 @@ import logging
 import random
 import sqlite3
 import time
+from aiohttp import web
 from aiogram import Bot, Dispatcher, F, types
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
@@ -205,7 +206,6 @@ async def cmd_start(message: types.Message):
         "Або грайте в текстовому режимі за допомогою нижнього меню."
     )
     
-    # Кнопка під повідомленням
     inline_webapp_kb = InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(text="🚀 Запустити Crash WebApp 🎮", web_app=WebAppInfo(url=WEBAPP_URL))]
@@ -435,11 +435,25 @@ async def process_successful_payment(message: types.Message):
     update_balance(message.from_user.id, stars_added)
     await message.answer(f"🎉 Дякуємо за підтримку! На ваш баланс зараховано **+{stars_added} ⭐**")
 
-# ==================== 7. ЗАПУСК ====================
+# ==================== 7. ВЕБ-СЕРВЕР ДЛЯ RENDER ТА ЗАПУСК ====================
+
+async def handle(request):
+    return web.Response(text="Bot is running!")
 
 async def main():
     init_db()
     asyncio.create_task(crash_game_loop())
+    
+    # Вбудований веб-сервер, щоб Render бачив запуск порту
+    app = web.Application()
+    app.router.add_get("/", handle)
+    runner = web.AppRunner(app)
+    await runner.setup()
+    port = int(os.getenv("PORT", 8080))
+    site = web.TCPSite(runner, "0.0.0.0", port)
+    await site.start()
+    
+    # Запускаємо бота
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
