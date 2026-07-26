@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>Crash Game Mini App</title>
-  <!-- Telegram WebApp SDK -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
     * {
@@ -46,9 +45,10 @@
       font-weight: bold;
       font-size: 14px;
       box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
+      cursor: pointer;
     }
 
-    /* Екран гри та полотно анімації */
+    /* Екран гри */
     .game-container {
       flex: 1;
       display: flex;
@@ -89,7 +89,7 @@
       color: #94a3b8;
     }
 
-    /* Панель керування ставками */
+    /* Ставки */
     .controls {
       margin-top: 12px;
       background: #1e293b;
@@ -123,13 +123,12 @@
       font-weight: bold;
       color: white;
       cursor: pointer;
-      transition: all 0.2s;
     }
     .btn-bet { background: #22c55e; }
     .btn-cashout { background: #eab308; }
     .btn-disabled { background: #475569; opacity: 0.6; cursor: not-allowed; }
 
-    /* Нижня навігація (Вкладки) */
+    /* Навігація */
     .nav-bar {
       display: flex;
       background: #0f172a;
@@ -153,7 +152,7 @@
       margin-bottom: 2px;
     }
 
-    /* Вкладки Профіль та Топ */
+    /* Вкладки */
     .tab-content {
       display: none;
       flex: 1;
@@ -168,6 +167,17 @@
       border-radius: 12px;
       margin-bottom: 12px;
       border: 1px solid #334155;
+    }
+    .deposit-btn {
+      width: 100%;
+      padding: 12px;
+      margin-top: 8px;
+      background: #3b82f6;
+      border: none;
+      color: white;
+      font-weight: bold;
+      border-radius: 8px;
+      cursor: pointer;
     }
     .top-item {
       display: flex;
@@ -185,8 +195,8 @@
     <div class="user-info">
       <span id="username-display">Гравець</span>
     </div>
-    <div class="balance-badge">
-      💰 <span id="balance">100</span> ⭐
+    <div class="balance-badge" onclick="switchTabDirect('deposit')">
+      💰 <span id="balance">0</span> ⭐ ➕
     </div>
   </div>
 
@@ -211,40 +221,64 @@
     </div>
   </div>
 
-  <!-- ВКЛАДКА 2: ПРОФІЛЬ -->
+  <!-- ВКЛАДКА 2: ПОПОВНЕННЯ (НОВА) -->
+  <div id="tab-deposit" class="tab-content">
+    <div class="card">
+      <h2>💳 Поповнити Баланс</h2>
+      <p style="font-size:13px; color:#94a3b8; margin-top:4px;">Оберіть зручний спосіб поповнення:</p>
+      <br>
+      
+      <div style="background:#0f172a; padding:12px; border-radius:8px; margin-bottom:10px;">
+        <h4>⭐ Telegram Stars</h4>
+        <p style="font-size:12px; color:#94a3b8; margin:4px 0;">Оплата прямо всередині Telegram в один клік.</p>
+        <button class="deposit-btn" onclick="openStarsMenu()">Купити через Stars</button>
+      </div>
+
+      <div style="background:#0f172a; padding:12px; border-radius:8px;">
+        <h4>🎁 Безкоштовний Бонус</h4>
+        <p style="font-size:12px; color:#94a3b8; margin:4px 0;">Отримуйте 5 ⭐ кожні 24 години у чаті бота!</p>
+        <button class="deposit-btn" style="background:#10b981;" onclick="closeAppAndBonus()">Забрати в чаті</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ВКЛАДКА 3: ПРОФІЛЬ -->
   <div id="tab-profile" class="tab-content">
     <div class="card">
       <h2>👤 Ваш Профіль</h2>
       <br>
       <p><b>Ім'я:</b> <span id="prof-name">-</span></p>
       <p><b>Telegram ID:</b> <span id="prof-id">-</span></p>
-      <p><b>Баланс:</b> <span id="prof-balance">100</span> ⭐</p>
+      <p><b>Баланс:</b> <span id="prof-balance">0</span> ⭐</p>
     </div>
   </div>
 
-  <!-- ВКЛАДКА 3: ТОП ГРАВЦІВ -->
+  <!-- ВКЛАДКА 4: ТОП -->
   <div id="tab-top" class="tab-content">
     <div class="card">
-      <h2>🏆 Топ-10 Гравців</h2>
+      <h2>🏆 Топ Гравців</h2>
       <br>
       <div class="top-item"><span>1. Alex</span><b>1,500 ⭐</b></div>
       <div class="top-item"><span>2. Bogdan</span><b>1,200 ⭐</b></div>
       <div class="top-item"><span>3. Max</span><b>850 ⭐</b></div>
-      <div class="top-item"><span>4. Winner_99</span><b>500 ⭐</b></div>
     </div>
   </div>
 
   <!-- НИЖНЯ НАВІГАЦІЯ -->
   <div class="nav-bar">
-    <div class="nav-item active" onclick="switchTab('game', this)">
+    <div id="nav-game" class="nav-item active" onclick="switchTab('game', this)">
       <div>🚀</div>
       Гра
     </div>
-    <div class="nav-item" onclick="switchTab('profile', this)">
+    <div id="nav-deposit" class="nav-item" onclick="switchTab('deposit', this)">
+      <div>💳</div>
+      Поповнити
+    </div>
+    <div id="nav-profile" class="nav-item" onclick="switchTab('profile', this)">
       <div>👤</div>
       Профіль
     </div>
-    <div class="nav-item" onclick="switchTab('top', this)">
+    <div id="nav-top" class="nav-item" onclick="switchTab('top', this)">
       <div>🏆</div>
       Топ
     </div>
@@ -254,7 +288,10 @@
     const tg = window.Telegram.WebApp;
     tg.expand();
 
-    // Завантаження профілю
+    // Початковий баланс 0
+    let userBalance = 0;
+
+    // Дані гравця з Telegram
     const user = tg.initDataUnsafe?.user;
     if (user) {
       document.getElementById('username-display').innerText = user.first_name;
@@ -262,7 +299,11 @@
       document.getElementById('prof-id').innerText = user.id;
     }
 
-    // Логіка перемикання вкладок
+    function updateBalanceDisplay() {
+      document.getElementById('balance').innerText = userBalance;
+      document.getElementById('prof-balance').innerText = userBalance;
+    }
+
     function switchTab(tabName, el) {
       document.querySelectorAll('.tab-content').forEach(tab => tab.style.display = 'none');
       document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
@@ -271,10 +312,25 @@
       if (tabName === 'game') target.style.display = 'flex';
       else target.style.display = 'block';
 
-      el.classList.add('active');
+      if (el) el.classList.add('active');
     }
 
-    // Логіка анімації Літака та Графіки
+    function switchTabDirect(tabName) {
+      const navEl = document.getElementById('nav-' + tabName);
+      switchTab(tabName, navEl);
+    }
+
+    function openStarsMenu() {
+      tg.sendData("open_stars");
+      tg.close();
+    }
+
+    function closeAppAndBonus() {
+      tg.sendData("open_bonus");
+      tg.close();
+    }
+
+    // Анімація гри
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
     
@@ -291,7 +347,6 @@
     let isCrashed = false;
     let currentBet = 1;
     let hasBet = false;
-    let userBalance = 100;
 
     function setBet(amt) {
       if (isRunning) return;
@@ -302,42 +357,33 @@
     function handleMainAction() {
       const btn = document.getElementById('main-btn');
       if (!isRunning && !hasBet) {
-        if (userBalance < currentBet) return alert('Недостатньо зірочок!');
+        if (userBalance < currentBet) return alert('Недостатньо зірочок! Поповніть баланс.');
         userBalance -= currentBet;
-        updateBalance();
+        updateBalanceDisplay();
         hasBet = true;
         btn.innerText = 'ОЧІКУВАННЯ ЗЛЕТУ...';
         btn.classList.add('btn-disabled');
       } else if (isRunning && hasBet) {
-        // Забрати виграш
         const win = Math.floor(currentBet * multiplier);
         userBalance += win;
-        updateBalance();
+        updateBalanceDisplay();
         hasBet = false;
         btn.innerText = `ЗАБРАНО +${win} ⭐`;
         btn.className = 'action-btn btn-disabled';
       }
     }
 
-    function updateBalance() {
-      document.getElementById('balance').innerText = userBalance;
-      document.getElementById('prof-balance').innerText = userBalance;
-    }
-
-    // Цикл гри
     function startAutoLoop() {
       setInterval(() => {
-        if (!isRunning) {
-          startFlight();
-        }
-      }, 12000); // Новий раунд кожні 12 сек
+        if (!isRunning) startFlight();
+      }, 12000);
     }
 
     function startFlight() {
       isRunning = true;
       isCrashed = false;
       multiplier = 1.00;
-      targetMultiplier = (1 + Math.random() * 3).toFixed(2); // Генерація X
+      targetMultiplier = (1 + Math.random() * 3).toFixed(2);
       
       document.getElementById('status-text').innerText = "ЛІТАК У ПОЛЬОТІ!";
       const btn = document.getElementById('main-btn');
@@ -369,9 +415,8 @@
       document.getElementById('multiplier').style.color = '#ef4444';
       
       const btn = document.getElementById('main-btn');
-      if (hasBet) {
-        hasBet = false;
-      }
+      if (hasBet) hasBet = false;
+
       btn.innerText = `ЗРОБИТИ СТАВКУ (${currentBet} ⭐)`;
       btn.className = 'action-btn btn-bet';
 
@@ -383,18 +428,14 @@
       }, 3000);
     }
 
-    // Малювання траєкторії та літака
     function drawScene(mult) {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      
       const startX = 30;
       const startY = canvas.height - 30;
-      
       const progress = Math.min((mult - 1) / 3, 1);
       const endX = startX + (canvas.width - 80) * progress;
       const endY = startY - (canvas.height - 80) * progress;
 
-      // Лінія злету
       ctx.beginPath();
       ctx.moveTo(startX, startY);
       ctx.quadraticCurveTo(startX + (endX - startX) / 2, startY, endX, endY);
@@ -402,7 +443,6 @@
       ctx.lineWidth = 4;
       ctx.stroke();
 
-      // Малюємо літачок 🚀
       ctx.font = "28px sans-serif";
       if (!isCrashed) {
         ctx.fillText("🚀", endX - 10, endY + 10);
@@ -411,7 +451,7 @@
       }
     }
 
-    // Запуск
+    updateBalanceDisplay();
     drawScene(1);
     startAutoLoop();
   </script>
