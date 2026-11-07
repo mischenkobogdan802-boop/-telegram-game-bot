@@ -62,7 +62,7 @@
       flex-direction: column;
     }
 
-    /* Сітка ігор (Головна) */
+    /* Сітка ігор */
     .section-title {
       font-size: 16px;
       font-weight: bold;
@@ -102,7 +102,7 @@
     .canvas-container {
       position: relative;
       width: 100%;
-      height: 220px;
+      height: 200px;
       background: #0f172a;
       border-radius: 12px;
       overflow: hidden;
@@ -114,7 +114,7 @@
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      font-size: 40px;
+      font-size: 36px;
       font-weight: 900;
       color: #38bdf8;
       pointer-events: none;
@@ -166,7 +166,7 @@
     }
     .mine-cell.revealed { background: #1e293b; }
 
-    /* Блок профілю */
+    /* Профіль */
     .profile-card {
       background: #1e293b;
       border-radius: 16px;
@@ -196,7 +196,6 @@
       font-size: 14px;
     }
 
-    /* Кнопки дій */
     .action-btn {
       width: 100%;
       padding: 14px;
@@ -247,9 +246,9 @@
     </div>
   </div>
 
-  <!-- ВКЛАДКА 1: ГОЛОВНА / ІГРИ -->
+  <!-- ГОЛОВНА -->
   <div id="tab-game" class="tab-content active">
-    <div class="section-title">⚡ Найкращі ігри у застосунку</div>
+    <div class="section-title">⚡ Виберіть гру</div>
     <div class="games-grid">
       <div class="game-card" onclick="switchTab('crash')">
         <span>🚀</span>
@@ -270,53 +269,53 @@
     </div>
   </div>
 
-  <!-- ВКЛАДКА: РАКЕТА (CRASH) У ЗАСТОСУНКУ -->
+  <!-- РАКЕТА -->
   <div id="tab-crash" class="tab-content">
     <div class="crash-box">
       <h2>🚀 Ракета (Crash)</h2>
+      <div id="crashStatusText" style="font-size: 13px; color: #f59e0b; margin-top: 4px;">Наступний запуск через: 10 сек</div>
       <div class="canvas-container">
         <div id="crashMultiplier" class="crash-mult-text">1.00x</div>
         <canvas id="crashCanvas"></canvas>
       </div>
       <div>
         <div style="margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
-          <span style="font-size:14px; color:#94a3b8;">Ставка (⭐):</span>
-          <input type="number" id="crashBetInput" value="10" min="1" style="width:90px; padding:8px; background:#0f172a; border:1px solid #334155; color:#fff; border-radius:8px; text-align:center; font-weight:bold;">
+          <span style="font-size:14px; color:#94a3b8;">Ставка (10 - 99999 ⭐):</span>
+          <input type="number" id="crashBetInput" value="10" min="10" max="99999" style="width:100px; padding:8px; background:#0f172a; border:1px solid #334155; color:#fff; border-radius:8px; text-align:center; font-weight:bold;">
         </div>
         <button class="action-btn" id="crashActionBtn" onclick="handleCrashAction()">ЗРОБИТИ СТАВКУ</button>
       </div>
     </div>
-    <button class="action-btn" style="background:#64748b; margin-top:8px;" onclick="switchTab('game')">Назад до ігор</button>
+    <button class="action-btn" style="background:#64748b; margin-top:8px;" onclick="switchTab('game')">Назад</button>
   </div>
 
-  <!-- ВКЛАДКА: МІНИ -->
+  <!-- МІНИ -->
   <div id="tab-mines" class="tab-content">
     <h2>💣 Гра «Міни»</h2>
-    <p style="color:#94a3b8; font-size:13px; margin: 8px 0;">Знайдіть безпечні комірки та заберіть виграш!</p>
+    <p style="color:#94a3b8; font-size:13px; margin: 8px 0;">Ставка: 10 - 99999 ⭐</p>
     <div class="mines-grid" id="minesContainer"></div>
     <button class="action-btn" id="minesBtn" onclick="startMinesGame()">Почати гру (10 ⭐)</button>
-    <button class="action-btn" style="background:#64748b; margin-top:8px;" onclick="switchTab('game')">Назад до ігор</button>
+    <button class="action-btn" style="background:#64748b; margin-top:8px;" onclick="switchTab('game')">Назад</button>
   </div>
 
-  <!-- ВКЛАДКА: ПЛІНКО -->
+  <!-- ПЛІНКО -->
   <div id="tab-plinko" class="tab-content">
     <h2>⚪ Гра «Плінко»</h2>
-    <p style="color:#94a3b8; font-size:13px; margin: 8px 0;">Кулька падає крізь перешкоди у лунки з множниками!</p>
     <div style="background:#1e293b; border-radius:16px; padding:12px; text-align:center; border:1px solid #334155;">
-      <canvas id="plinkoCanvas" width="300" height="300" style="background:#0f172a; border-radius:12px; display:block; margin: 0 auto;"></canvas>
+      <canvas id="plinkoCanvas" width="300" height="280" style="background:#0f172a; border-radius:12px; display:block; margin: 0 auto;"></canvas>
       <button class="action-btn" onclick="dropPlinkoBall()">Кінути кульку (10 ⭐)</button>
     </div>
-    <button class="action-btn" style="background:#64748b; margin-top:12px;" onclick="switchTab('game')">Назад до ігор</button>
+    <button class="action-btn" style="background:#64748b; margin-top:12px;" onclick="switchTab('game')">Назад</button>
   </div>
 
-  <!-- ВКЛАДКА 2: КЕЙСИ -->
+  <!-- КЕЙСИ -->
   <div id="tab-cases" class="tab-content">
     <div class="section-title">🎁 Колекція кейсів</div>
     <div class="cases-grid">
       <div class="case-item">
         <h3>Free Case</h3>
-        <p style="color:#eab308; font-size:13px; margin:4px 0;">0 ⭐</p>
-        <button class="case-btn" onclick="openCustomCase('free')">Відкрити</button>
+        <p style="color:#eab308; font-size:13px; margin:4px 0;">0 ⭐ (1 раз на 24г)</p>
+        <button class="case-btn" onclick="openFreeCase()">Відкрити</button>
       </div>
       <div class="case-item">
         <h3>Gothic Case</h3>
@@ -339,22 +338,18 @@
         <button class="case-btn" onclick="openCustomCase('digital')">Відкрити</button>
       </div>
     </div>
-    <button class="action-btn" style="background:#64748b; margin-top:16px;" onclick="switchTab('game')">Назад до ігор</button>
+    <button class="action-btn" style="background:#64748b; margin-top:16px;" onclick="switchTab('game')">Назад</button>
   </div>
 
-  <!-- ВКЛАДКА 3: РЕЙТИНГ -->
+  <!-- РЕЙТИНГ -->
   <div id="tab-top" class="tab-content">
     <div class="section-title">🏆 Рейтинг найкращих гравців</div>
     <div class="leader-row"><span>1. gomax</span><b>206,136 ⭐</b></div>
     <div class="leader-row"><span>2. mc_traher66</span><b>119,717 ⭐</b></div>
     <div class="leader-row"><span>3. Gorto</span><b>89,099 ⭐</b></div>
-    <div class="leader-row"><span>4. Vlad</span><b>47,590 ⭐</b></div>
-    <div class="leader-row"><span>5. саидик</span><b>46,126 ⭐</b></div>
-    <div class="leader-row"><span>6. Madina</span><b>44,125 ⭐</b></div>
-    <div class="leader-row"><span>7. Danilka</span><b>43,267 ⭐</b></div>
   </div>
 
-  <!-- ВКЛАДКА 4: ПРОФІЛЬ ТА РЕФЕРАЛИ -->
+  <!-- ПРОФІЛЬ -->
   <div id="tab-profile" class="tab-content">
     <div class="profile-card">
       <h2 style="margin-bottom: 16px;" id="prof-name">Профіль</h2>
@@ -365,28 +360,20 @@
 
     <div class="profile-card">
       <h3 style="font-size: 15px; margin-bottom: 8px;">🤝 Реферальна система</h3>
-      <p style="font-size: 12px; color: #94a3b8; margin-bottom: 10px;">Запрошуйте друзів та отримуйте +20 ⭐ за кожного!</p>
+      <p style="font-size: 12px; color: #94a3b8; margin-bottom: 10px;">Запрошуйте друзів та отримуйте **10%** від їх поповнень!</p>
       <input type="text" id="refLinkInput" readonly style="width:100%; padding:10px; background:#0f172a; border:1px solid #334155; color:#fff; border-radius:8px; font-size:12px; margin-bottom:8px; text-align:center;" value="Генерація...">
-      <button class="action-btn" style="background:#3b82f6; margin-top:0;" onclick="copyRefLink()">Скопіювати посилання</button>
+      <button class="action-btn" style="background:#3b82f6; margin-top:0;" onclick="copyRefLink()">Скопіювати</button>
     </div>
 
     <button class="action-btn" style="background:#10b981; margin-top:4px;" onclick="openStarsMenu()">Поповнити через Stars ⭐</button>
   </div>
 
-  <!-- НИЖНЯ ПАНЕЛЬ НАВІГАЦІЇ -->
+  <!-- НАВІГАЦІЯ -->
   <div class="nav-bar">
-    <div id="nav-game" class="nav-item active" onclick="switchTab('game')">
-      <div>🏠</div>Головна
-    </div>
-    <div id="nav-cases" class="nav-item" onclick="switchTab('cases')">
-      <div>🎁</div>Кейси
-    </div>
-    <div id="nav-top" class="nav-item" onclick="switchTab('top')">
-      <div>🏆</div>Рейтинг
-    </div>
-    <div id="nav-profile" class="nav-item" onclick="switchTab('profile')">
-      <div>👤</div>Профіль
-    </div>
+    <div id="nav-game" class="nav-item active" onclick="switchTab('game')"><div>🏠</div>Головна</div>
+    <div id="nav-cases" class="nav-item" onclick="switchTab('cases')"><div>🎁</div>Кейси</div>
+    <div id="nav-top" class="nav-item" onclick="switchTab('top')"><div>🏆</div>Рейтинг</div>
+    <div id="nav-profile" class="nav-item" onclick="switchTab('profile')"><div>👤</div>Профіль</div>
   </div>
 
   <script>
@@ -401,7 +388,6 @@
       document.getElementById('username-display').innerText = user.first_name;
       document.getElementById('prof-name').innerText = user.first_name;
       document.getElementById('prof-id').innerText = user.id;
-
       const botUsername = "mischenkobogdan802_bot"; 
       document.getElementById('refLinkInput').value = `https://t.me/${botUsername}?start=ref_${user.id}`;
     }
@@ -433,16 +419,12 @@
       }
     }
 
-    // Універсальне перемикання вкладок
     window.switchTab = function(tabName) {
       document.querySelectorAll('.tab-content').forEach(tab => {
         tab.classList.remove('active');
         tab.style.display = 'none';
       });
-
-      document.querySelectorAll('.nav-item').forEach(item => {
-        item.classList.remove('active');
-      });
+      document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
 
       const targetTab = document.getElementById('tab-' + tabName);
       if (targetTab) {
@@ -463,16 +445,19 @@
 
     document.addEventListener("DOMContentLoaded", () => {
       switchTab('game');
+      startGlobalCrashLoop();
     });
 
-    // --- ПОВНОЦІННА ГРА РАКЕТА (CRASH) У ЗАСТОСУНКУ ---
+    // --- АВТОМАТИЧНИЙ КРАШ КОЖНІ 10 СЕКУНД ---
     const cCanvas = document.getElementById('crashCanvas');
     const cCtx = cCanvas ? cCanvas.getContext('2d') : null;
-    let crashState = 'ready'; // ready, flying, crashed
+    let crashPhase = 'waiting'; // waiting, flying, crashed
     let crashMultiplier = 1.00;
     let crashTarget = 1.00;
-    let crashBet = 10;
-    let crashAnim = null;
+    let userHasActiveBet = false;
+    let crashBetAmount = 10;
+    let countdownTimer = 10;
+    let loopInterval = null;
 
     function initCrashCanvas() {
       if (!cCanvas) return;
@@ -484,8 +469,6 @@
     function drawCrashScene(mult) {
       if (!cCtx) return;
       cCtx.clearRect(0, 0, cCanvas.width, cCanvas.height);
-
-      // Лінія графіка
       cCtx.beginPath();
       cCtx.moveTo(20, cCanvas.height - 20);
       let progress = Math.min((mult - 1) / 3, 1);
@@ -493,129 +476,157 @@
       let endY = (cCanvas.height - 20) - (cCanvas.height - 50) * progress;
       
       cCtx.quadraticCurveTo(endX / 2, cCanvas.height - 20, endX, endY);
-      cCtx.strokeStyle = crashState === 'crashed' ? '#ef4444' : '#38bdf8';
+      cCtx.strokeStyle = crashPhase === 'crashed' ? '#ef4444' : '#38bdf8';
       cCtx.lineWidth = 3;
       cCtx.stroke();
 
-      // Ракета або вибух
       cCtx.font = "24px sans-serif";
-      if (crashState === 'crashed') {
-        cCtx.fillText("💥", endX - 12, endY + 8);
-      } else if (crashState === 'flying') {
-        cCtx.fillText("🚀", endX - 12, endY + 8);
-      }
+      if (crashPhase === 'crashed') cCtx.fillText("💥", endX - 12, endY + 8);
+      else if (crashPhase === 'flying') cCtx.fillText("🚀", endX - 12, endY + 8);
+    }
+
+    function startGlobalCrashLoop() {
+      if (loopInterval) return;
+      loopInterval = setInterval(() => {
+        if (crashPhase === 'waiting') {
+          countdownTimer--;
+          document.getElementById('crashStatusText').innerText = `Зліт через: ${countdownTimer} сек`;
+          if (countdownTimer <= 0) {
+            // Старт польоту
+            crashPhase = 'flying';
+            crashMultiplier = 1.00;
+            crashTarget = +(1.1 + Math.random() * 4.0).toFixed(2);
+            document.getElementById('crashStatusText').innerText = '🚀 ЛІТАК У ПОЛЬОТІ!';
+            updateCrashButtonState();
+
+            let flightTimer = setInterval(() => {
+              crashMultiplier += 0.05;
+              document.getElementById('crashMultiplier').innerText = crashMultiplier.toFixed(2) + 'x';
+              drawCrashScene(crashMultiplier);
+
+              if (crashMultiplier >= crashTarget) {
+                clearInterval(flightTimer);
+                crashPhase = 'crashed';
+                document.getElementById('crashStatusText').innerText = `💥 КРАШ на ${crashTarget.toFixed(2)}x!`;
+                document.getElementById('crashMultiplier').style.color = '#ef4444';
+                
+                if (userHasActiveBet) {
+                  userHasActiveBet = false;
+                  alert('💥 Ракета впала! Ваша ставка згоріла.');
+                }
+
+                updateCrashButtonState();
+
+                setTimeout(() => {
+                  crashPhase = 'waiting';
+                  countdownTimer = 10;
+                  document.getElementById('crashMultiplier').style.color = '#38bdf8';
+                  document.getElementById('crashMultiplier').innerText = '1.00x';
+                  drawCrashScene(1.00);
+                  updateCrashButtonState();
+                }, 3000);
+              }
+            }, 100);
+          }
+        }
+      }, 1000);
     }
 
     window.handleCrashAction = function() {
       const btn = document.getElementById('crashActionBtn');
       const input = document.getElementById('crashBetInput');
+      let bet = parseInt(input.value, 10);
 
-      if (crashState === 'ready') {
-        crashBet = parseInt(input.value, 10);
-        if (isNaN(crashBet) || crashBet <= 0) {
-          alert('Введіть коректну ставку!');
-          return;
-        }
-        if (userBalance < crashBet) {
-          alert('Недостатньо зірочок!');
-          return;
-        }
+      if (bet < 10 || bet > 99999) {
+        alert('Ставка має бути від 10 до 99999 ⭐!');
+        return;
+      }
 
-        syncWithBot(false, -crashBet);
-        input.disabled = true;
-        crashState = 'flying';
-        crashMultiplier = 1.00;
-        crashTarget = +(1.2 + Math.random() * 3.8).toFixed(2);
-        btn.innerText = 'ЗАБРАТИ ВИГРАШ';
-        btn.style.background = '#eab308';
-
-        crashAnim = setInterval(() => {
-          crashMultiplier += 0.04;
-          document.getElementById('crashMultiplier').innerText = crashMultiplier.toFixed(2) + 'x';
-          drawCrashScene(crashMultiplier);
-
-          if (crashMultiplier >= crashTarget) {
-            clearInterval(crashAnim);
-            crashState = 'crashed';
-            document.getElementById('crashMultiplier').style.color = '#ef4444';
-            btn.innerText = 'КРАШ! Зіграти знову';
-            btn.style.background = '#ef4444';
-            setTimeout(() => {
-              crashState = 'ready';
-              input.disabled = false;
-              btn.innerText = 'ЗРОБИТИ СТАВКУ';
-              btn.style.background = '#22c55e';
-              document.getElementById('crashMultiplier').style.color = '#38bdf8';
-              document.getElementById('crashMultiplier').innerText = '1.00x';
-              drawCrashScene(1.00);
-            }, 2500);
+      if (crashPhase === 'waiting') {
+        if (!userHasActiveBet) {
+          if (userBalance < bet) {
+            alert('Недостатньо зірочок!');
+            return;
           }
-        }, 80);
-
-      } else if (crashState === 'flying') {
-        clearInterval(crashAnim);
-        let win = Math.floor(crashBet * crashMultiplier);
+          syncWithBot(false, -bet);
+          crashBetAmount = bet;
+          userHasActiveBet = true;
+          input.disabled = true;
+          btn.innerText = 'СТАВКУ ПРИЙНЯТО (Очікування)';
+          btn.style.background = '#eab308';
+        }
+      } else if (crashPhase === 'flying' && userHasActiveBet) {
+        let win = Math.floor(crashBetAmount * crashMultiplier);
         syncWithBot(true, win);
-        alert(`🎉 Ви успішно забрали виграш: ${win} ⭐ (${crashMultiplier.toFixed(2)}x)!`);
-        
-        crashState = 'ready';
+        alert(`🎉 Ви забрали виграш: ${win} ⭐ (${crashMultiplier.toFixed(2)}x)!`);
+        userHasActiveBet = false;
         input.disabled = false;
         btn.innerText = 'ЗРОБИТИ СТАВКУ';
         btn.style.background = '#22c55e';
-        document.getElementById('crashMultiplier').innerText = '1.00x';
-        drawCrashScene(1.00);
       }
     };
 
-    // --- КЕЙСИ ---
+    function updateCrashButtonState() {
+      const btn = document.getElementById('crashActionBtn');
+      const input = document.getElementById('crashBetInput');
+      if (crashPhase === 'waiting') {
+        input.disabled = userHasActiveBet;
+        btn.innerText = userHasActiveBet ? 'СТАВКУ ПРИЙНЯТО' : 'ЗРОБИТИ СТАВКУ';
+        btn.style.background = userHasActiveBet ? '#eab308' : '#22c55e';
+      } else if (crashPhase === 'flying') {
+        btn.innerText = userHasActiveBet ? 'ЗАБРАТИ ВИГРАШ' : 'ПОЛІТ ТРИВАЄ';
+        btn.style.background = userHasActiveBet ? '#eab308' : '#64748b';
+      } else {
+        btn.innerText = 'РАУНД ЗАВЕРШЕНО';
+        btn.style.background = '#ef4444';
+      }
+    }
+
+    // --- БЕЗКОШТОВНИЙ КЕЙС (1 раз на 24 год, 1-5 зірок) ТА ЗВИЧАЙНІ ---
+    window.openFreeCase = function() {
+      let lastOpen = localStorage.getItem('last_free_case') || 0;
+      let now = Date.now();
+      let cooldown = 24 * 60 * 60 * 1000; // 24 години
+
+      if (now - lastOpen < cooldown) {
+        let hoursLeft = Math.ceil((cooldown - (now - lastOpen)) / (1000 * 60 * 60));
+        alert(`⏳ Безкоштовний кейс буде доступний через ${hoursLeft} год.`);
+        return;
+      }
+
+      localStorage.setItem('last_free_case', now);
+      let prize = Math.floor(Math.random() * 5) + 1; // 1-5 зірок
+      syncWithBot(true, prize);
+      alert(`🎁 Вітаємо! Ви відкрили безкоштовний кейс і виграли ${prize} ⭐!`);
+    };
+
     window.openCustomCase = function(type) {
       let cost = 0;
       let possiblePrizes = [];
       let nftChance = 0.000001;
 
-      if (type === 'free') {
-        cost = 0;
-        possiblePrizes = [1, 2, 3, 5, 10, 15];
-      } else if (type === 'gothic') {
-        cost = 50;
-        possiblePrizes = [5, 10, 15, 20, 30, 30];
-        nftChance = 0.00001;
-      } else if (type === 'cinema') {
-        cost = 150;
-        possiblePrizes = [10, 30, 50, 70, 90];
-        nftChance = 0.000001;
-      } else if (type === 'fortune') {
-        cost = 500;
-        possiblePrizes = [50, 100, 200, 250, 300];
-        nftChance = 0.05;
-      } else if (type === 'digital') {
-        cost = 1500;
-        possiblePrizes = [400, 600, 1000, 1500, 2000, 3000];
-        nftChance = 0.20;
-      }
+      if (type === 'gothic') { cost = 50; possiblePrizes = [5, 10, 15, 20, 30, 30]; nftChance = 0.00001; }
+      else if (type === 'cinema') { cost = 150; possiblePrizes = [10, 30, 50, 70, 90]; nftChance = 0.000001; }
+      else if (type === 'fortune') { cost = 500; possiblePrizes = [50, 100, 200, 250, 300]; nftChance = 0.05; }
+      else if (type === 'digital') { cost = 1500; possiblePrizes = [400, 600, 1000, 1500, 2000, 3000]; nftChance = 0.20; }
 
       if (userBalance < cost) {
-        alert('Недостатньо зірочок для відкриття цього кейсу!');
+        alert('Недостатньо зірочок!');
         return;
       }
 
-      if (cost > 0) {
-        syncWithBot(false, -cost);
-      }
-
-      let hitNft = Math.random() < nftChance;
-
-      if (hitNft) {
+      syncWithBot(false, -cost);
+      if (Math.random() < nftChance) {
         alert('💎 ОГО! ВИ ВИБИЛИ РІДКІСНУ NFT У КЕЙСІ!');
         syncWithBot(true, cost * 10);
       } else {
         let prize = possiblePrizes[Math.floor(Math.random() * possiblePrizes.length)];
         syncWithBot(true, prize);
-        alert(`🎉 Вітаємо! Ви відкрили кейс і виграли ${prize} ⭐!`);
+        alert(`🎉 Ви відкрили кейс і виграли ${prize} ⭐!`);
       }
     };
 
-    // --- МІНИ ---
+    // --- МІНИ (Ліміт 10-99999) ---
     let minesActive = false;
     let minesMultiplier = 1.0;
     let revealedCount = 0;
@@ -636,20 +647,18 @@
 
     window.startMinesGame = function() {
       if (userBalance < 10) {
-        alert('Недостатньо зірочок на балансі!');
+        alert('Мінімальна ставка 10 ⭐!');
         return;
       }
-      
       if (minesActive) {
-        const prize = Math.floor(10 * minesMultiplier);
+        let prize = Math.floor(10 * minesMultiplier);
         syncWithBot(true, prize);
-        alert(`🎉 Ви успішно забрали виграш: ${prize} ⭐!`);
+        alert(`🎉 Забрано виграш: ${prize} ⭐!`);
         minesActive = false;
         document.getElementById('minesBtn').innerText = 'Почати гру (10 ⭐)';
         initMinesBoard();
         return;
       }
-
       syncWithBot(false, -10);
       minesActive = true;
       minesMultiplier = 1.0;
@@ -659,41 +668,27 @@
     };
 
     function clickMineCell(cell) {
-      if (!minesActive) {
-        alert('Спочатку натисніть «Почати гру (10 ⭐)»!');
-        return;
-      }
+      if (!minesActive) return;
       if (cell.classList.contains('revealed')) return;
 
-      const isMine = Math.random() < 0.30; 
-
-      if (!isMine) {
+      if (Math.random() > 0.30) {
         minesMultiplier = +(minesMultiplier * 1.35).toFixed(2);
         cell.innerText = '💎';
         cell.classList.add('revealed');
         revealedCount++;
-
         if (revealedCount >= 9) {
-          const prize = Math.floor(10 * minesMultiplier);
+          let prize = Math.floor(10 * minesMultiplier);
           syncWithBot(true, prize);
-          alert(`🏆 НЕЙМОВІРНО! Ви відкрили всі комірки та виграли ${prize} ⭐!`);
+          alert(`🏆 Перемога! Виграш: ${prize} ⭐!`);
           minesActive = false;
           document.getElementById('minesBtn').innerText = 'Почати гру (10 ⭐)';
-          initMinesBoard();
         }
       } else {
         cell.innerText = '💣';
         cell.classList.add('revealed');
-        alert('💥 Ви натрапили на міну! Гра закінчилась, ставка згоріла.');
+        alert('💥 Міна! Програш.');
         minesActive = false;
         document.getElementById('minesBtn').innerText = 'Почати гру (10 ⭐)';
-        
-        document.querySelectorAll('.mine-cell').forEach(c => {
-          if (!c.classList.contains('revealed')) {
-            c.innerText = Math.random() > 0.5 ? '💎' : '💣';
-            c.classList.add('revealed');
-          }
-        });
       }
     }
 
@@ -707,10 +702,9 @@
       if (!pCtx) return;
       pCtx.clearRect(0, 0, pCanvas.width, pCanvas.height);
       pCtx.fillStyle = '#94a3b8';
-      
       for (let r = 0; r < 5; r++) {
         let pins = r + 2;
-        let spacing = 32;
+        let spacing = 30;
         let startX = (pCanvas.width - (pins - 1) * spacing) / 2;
         for (let p = 0; p < pins; p++) {
           pCtx.beginPath();
@@ -718,7 +712,6 @@
           pCtx.fill();
         }
       }
-
       let slotWidth = pCanvas.width / multipliers.length;
       multipliers.forEach((m, i) => {
         pCtx.fillStyle = m >= 2 ? '#f59e0b' : '#334155';
@@ -728,7 +721,6 @@
         pCtx.textAlign = 'center';
         pCtx.fillText(m + 'x', i * slotWidth + slotWidth / 2, pCanvas.height - 11);
       });
-
       if (ball) {
         pCtx.beginPath();
         pCtx.arc(ball.x, ball.y, 6, 0, Math.PI * 2);
@@ -738,12 +730,8 @@
     }
 
     window.dropPlinkoBall = function() {
-      if (userBalance < 10) {
-        alert('Недостатньо зірочок!');
-        return;
-      }
+      if (userBalance < 10) { alert('Мінімальна ставка 10 ⭐!'); return; }
       syncWithBot(false, -10);
-
       ball = { x: pCanvas.width / 2, y: 10, vx: (Math.random() - 0.5) * 2, vy: 2 };
 
       function updateBall() {
@@ -751,12 +739,10 @@
         ball.y += ball.vy;
         ball.x += ball.vx;
         ball.vy += 0.12;
-
         if (ball.y >= pCanvas.height - 30) {
           let slotWidth = pCanvas.width / multipliers.length;
           let idx = Math.floor(ball.x / slotWidth);
-          idx = Math.max(0, Math.min(idx, multipliers.length - 1));
-          let win = Math.floor(10 * multipliers[idx]);
+          let win = Math.floor(10 * multipliers[Math.max(0, Math.min(idx, multipliers.length - 1))]);
           ball = null;
           drawPlinkoBoard();
           syncWithBot(true, win);
@@ -773,14 +759,10 @@
       const input = document.getElementById('refLinkInput');
       input.select();
       navigator.clipboard.writeText(input.value);
-      alert('✅ Реферальне посилання скопійовано!');
+      alert('✅ Посилання скопійовано!');
     };
 
-    window.openStarsMenu = function() {
-      tg.sendData("open_stars");
-      tg.close();
-    };
-
+    window.openStarsMenu = function() { tg.sendData("open_stars"); tg.close(); };
     updateBalanceDisplay();
   </script>
 </body>
