@@ -5,7 +5,7 @@ from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command
 from aiogram.types import WebAppInfo, InlineKeyboardMarkup, InlineKeyboardButton, LabeledPrice
 
-TOKEN = "ТВІЙ_ТОКЕН_БОТА"  # Заміни на свій токен
+TOKEN = "ТВІЙ_ТОКЕН_БОТА"  # Заміни на свій токен від BotFather
 WEBAPP_URL = "https://ТВІЙ_ЛОГІН.github.io/ТВІЙ_РЕПОЗИТОРІЙ/" # Посилання на GitHub Pages
 
 bot = Bot(token=TOKEN)
@@ -32,17 +32,41 @@ init_db()
 
 @dp.message(Command("start"))
 async def cmd_start(message: types.Message):
+    args = message.text.split()
     user_id = message.from_user.id
     username = message.from_user.username or "Гравець"
     
     conn = sqlite3.connect("database.db")
     cursor = conn.cursor()
-    cursor.execute("SELECT user_id FROM users WHERE user_id = ?", (user_id,))
-    if not cursor.fetchone():
+    cursor.execute("SELECT user_id, balance FROM users WHERE user_id = ?", (user_id,))
+    row = cursor.fetchone()
+    
+    if not row:
         cursor.execute("INSERT INTO users (user_id, username, balance, wins, referrals, referred_by, joined_date) VALUES (?, ?, 0, 0, 0, 0, ?)", 
                        (user_id, username, int(time.time())))
         conn.commit()
+        current_balance = 0
+    else:
+        current_balance = row[1]
     conn.close()
+
+    # Перевірка, чи користувач прийшов за посиланням поповнення з Mini App (наприклад, /start pay_50)
+    if len(args) > 1 and args[1].startswith("pay_"):
+        try:
+            amount = int(args[1].replace("pay_", ""))
+            if 10 <= amount <= 99999:
+                prices = [LabeledPrice(label=f"Поповнення {amount} Stars", amount=amount)]
+                await bot.send_invoice(
+                    chat_id=user_id,
+                    title="Поповнення балансу",
+                    description=f"Придбати {amount} ⭐ для гри в казино",
+                    payload=f"topup_{amount}",
+                    currency="XTR",
+                    prices=prices
+                )
+                return
+        except ValueError:
+            pass
 
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🎰 Відкрити Казино WebApp", web_app=WebAppInfo(url=WEBAPP_URL))]
@@ -53,22 +77,6 @@ async def cmd_start(message: types.Message):
         "Натисніть кнопку нижче, щоб відкрити ігрову платформу:",
         reply_markup=keyboard
     )
-
-# Створення інвойсу на оплату Telegram Stars (XTR) за запитом з Mini App
-@dp.callback_query(F.data.startswith("buy_stars_"))
-async def process_buy_stars(callback: types.CallbackQuery):
-    amount = int(callback.data.split("_")[2])
-    prices = [LabeledPrice(label=f"Поповнення {amount} Stars", amount=amount)]
-    
-    await bot.send_invoice(
-        chat_id=callback.from_user.id,
-        title="Поповнення балансу",
-        description=f"Придбати {amount} ⭐ для гри в казино",
-        payload=f"topup_{amount}",
-        currency="XTR",  # Валюта Telegram Stars
-        prices=prices
-    )
-    await callback.answer()
 
 @dp.pre_checkout_query()
 async def pre_checkout_query_handler(pre_checkout_query: types.PreCheckoutQuery):
@@ -88,7 +96,6 @@ async def successful_payment_handler(message: types.Message):
         cursor.execute("UPDATE users SET balance = balance + ? WHERE user_id = ?", (amount, user_id))
         conn.commit()
         
-        # Отримуємо новий баланс
         cursor.execute("SELECT balance FROM users WHERE user_id = ?", (user_id,))
         new_balance = cursor.fetchone()[0]
         conn.close()
@@ -111,5 +118,4 @@ async def web_app_data_handler(message: types.Message):
 
 if __name__ == "__main__":
     print("Бот запущено...")
-    dp.run_polling(bot)
     dp.run_polling(bot)
