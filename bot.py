@@ -5,14 +5,13 @@ from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command
 from aiogram.types import WebAppInfo, InlineKeyboardMarkup, InlineKeyboardButton
 
-TOKEN = "ТВІЙ_ТОКЕН_БОТА"  # Заміни на свій токен
+TOKEN = "ТВІЙ_ТОКЕН_БОТА"  # Заміни на свій токен від BotFather
 ADMIN_ID = 7842251789
-WEBAPP_URL = "https://ТВІЙ_ЛОГІН.github.io/ТВІЙ_РЕПОЗИТОРІЙ/" # Посилання на твій GitHub Pages
+WEBAPP_URL = "https://ТВІЙ_ЛОГІН.github.io/ТВІЙ_РЕПОЗИТОРІЙ/" # Посилання на GitHub Pages з твоїм index.html
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
 
-# Ініціалізація бази даних
 def init_db():
     conn = sqlite3.connect("database.db")
     cursor = conn.cursor()
@@ -51,7 +50,7 @@ def get_user(user_id: int, username: str, referrer_id: int = 0):
                 valid_referrer = referrer_id
                 cursor.execute("UPDATE users SET referrals = referrals + 1 WHERE user_id = ?", (referrer_id,))
 
-        # ПОЧАТКОВИЙ БАЛАНС 0 СТАВИТЬСЯ ТУТ:
+        # Початковий баланс рівно 0 ⭐ для нових гравців
         cursor.execute("""
             INSERT INTO users (user_id, username, balance, last_bonus, wins, referrals, referred_by, joined_date, rakeback, max_win) 
             VALUES (?, ?, 0, 0, 0, 0, ?, ?, 0, 0)
@@ -74,11 +73,11 @@ async def cmd_start(message: types.Message):
         except ValueError:
             pass
 
-    user = get_user(message.from_user.id, message.from_user.username, referrer_id)
-    balance = user[2]
+    get_user(message.from_user.id, message.from_user.username, referrer_id)
 
+    # Кнопка відкриття WebApp без передачі старих зірок у посиланні
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="🚀 Відкрити WebApp Casino", web_app=WebAppInfo(url=f"{WEBAPP_URL}?balance={balance}"))],
+        [InlineKeyboardButton(text="🚀 Відкрити WebApp Casino", web_app=WebAppInfo(url=WEBAPP_URL))],
         [InlineKeyboardButton(text="👤 Профіль", callback_data="profile"), InlineKeyboardButton(text="🏆 Топ", callback_data="top")]
     ])
 
@@ -115,7 +114,7 @@ async def cb_top(callback: types.CallbackQuery):
     await callback.message.answer(text, parse_mode="Markdown")
     await callback.answer()
 
-# Синхронизація даних із Mini App
+# Синхронізація актуального балансу із Mini App
 @dp.message(F.web_app_data)
 async def web_app_data_handler(message: types.Message):
     try:
@@ -128,7 +127,7 @@ async def web_app_data_handler(message: types.Message):
             conn.commit()
             conn.close()
     except Exception as e:
-        print(f"Помилка синхронізації: {e}")
+        print(f"Помилка синхронізації балансу: {e}")
 
 if __name__ == "__main__":
     print("Бот запущено...")
