@@ -404,7 +404,7 @@
     const tg = window.Telegram.WebApp;
     tg.expand();
 
-    // ЗАХИСТ БАЛАНСУ: завантажуємо з локальної пам'яті телефону, якщо там нічого немає — ставимо 0
+    // Завантажуємо баланс із пам'яті телефону (якщо нічого немає, почнемо з 0)
     let userBalance = parseInt(localStorage.getItem('user_casino_balance')) || 0;
     let userWins = parseInt(localStorage.getItem('user_casino_wins')) || 0;
 
@@ -417,20 +417,13 @@
       document.getElementById('refLinkInput').value = `https://t.me/${botUsername}?start=ref_${user.id}`;
     }
 
-    const urlParams = new URLSearchParams(window.location.search);
-    const balanceFromBot = urlParams.get('balance');
-    if (balanceFromBot !== null) {
-      userBalance = parseInt(balanceFromBot, 10);
-      localStorage.setItem('user_casino_balance', userBalance);
-    }
-
     function updateBalanceDisplay() {
       document.getElementById('balance').innerText = userBalance;
       document.getElementById('prof-balance').innerText = userBalance + " ⭐";
       const winsEl = document.getElementById('prof-wins');
       if (winsEl) winsEl.innerText = userWins;
 
-      // Зберігаємо баланс у пам'ять телефону назавжди
+      // Зберігаємо баланс та перемоги в пам'ять телефону назавжди
       localStorage.setItem('user_casino_balance', userBalance);
       localStorage.setItem('user_casino_wins', userWins);
     }
@@ -478,7 +471,7 @@
       startGlobalCrashLoop();
     });
 
-    // --- КРАШ З ТОЧНИМИ ПРОЦЕНТАМИ (70% на 1.00x-1.40x) ---
+    // --- КРАШ (70% на 1.00x-1.40x) ---
     const cCanvas = document.getElementById('crashCanvas');
     const cCtx = cCanvas ? cCanvas.getContext('2d') : null;
     let crashPhase = 'waiting';
@@ -525,7 +518,6 @@
             crashPhase = 'flying';
             crashMultiplier = 1.00;
 
-            // СУВОРЕ ДОТРИМАННЯ ВІДСОТКІВ: 70% (1.00-1.40), 25% (1.41-2.50), 5% (2.51-100)
             let rand = Math.random() * 100;
             if (rand < 70) {
               crashTarget = +(1.00 + Math.random() * 0.40).toFixed(2);
