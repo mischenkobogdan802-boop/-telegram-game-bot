@@ -44,7 +44,12 @@ def init_db():
             user_id INTEGER PRIMARY KEY,
             username TEXT,
             balance INTEGER DEFAULT 0,
-            last_bonus INTEGER DEFAULT 0
+            last_bonus INTEGER DEFAULT 0,
+            wins INTEGER DEFAULT 0,
+            referrals INTEGER DEFAULT 0,
+            joined_date INTEGER DEFAULT 0,
+            rakeback INTEGER DEFAULT 0,
+            max_win INTEGER DEFAULT 0
         )
     """)
     cursor.execute("""
@@ -58,14 +63,18 @@ def init_db():
 
 def get_user(user_id: int, username: str):
     safe_username = username if username else "Гравець"
+    now = int(time.time())
     conn = sqlite3.connect("database.db")
     cursor = conn.cursor()
-    cursor.execute("SELECT user_id, username, balance, last_bonus FROM users WHERE user_id = ?", (user_id,))
+    cursor.execute("SELECT user_id, username, balance, last_bonus, wins, referrals, joined_date, rakeback, max_win FROM users WHERE user_id = ?", (user_id,))
     row = cursor.fetchone()
     if not row:
-        cursor.execute("INSERT INTO users (user_id, username, balance, last_bonus) VALUES (?, ?, 0, 0)", (user_id, safe_username))
+        cursor.execute("""
+            INSERT INTO users (user_id, username, balance, last_bonus, wins, referrals, joined_date, rakeback, max_win) 
+            VALUES (?, ?, 100, 0, 0, 0, ?, 0, 0)
+        """, (user_id, safe_username, now))
         conn.commit()
-        row = (user_id, safe_username, 0, 0)
+        row = (user_id, safe_username, 100, 0, 0, 0, now, 0, 0)
     conn.close()
     return row
 
@@ -195,21 +204,21 @@ async def cmd_start(message: types.Message):
     user_webapp_url = f"{WEBAPP_URL}?balance={user_balance}"
 
     text = (
-        "👋 **Вітаємо у Crash Game!**\n\n"
-        "🎮 Натисніть кнопку **«📱 Відкрити WebApp»** нижче, щоб запустити Mini App із вашим збереженим балансом!\n\n"
-        "Або грайте в текстовому режимі за допомогою нижнього меню."
+        "👋 **Вітаємо у Telegram Казино!**\n\n"
+        "🎮 Натисніть кнопку **«📱 Відкрити Казино WebApp»** нижче, щоб запустити повноцінну ігрову платформу зі збереженим балансом!\n\n"
+        "Або користуйтеся текстовим меню нижче."
     )
     
     inline_webapp_kb = InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="🚀 Запустити Crash WebApp 🎮", web_app=WebAppInfo(url=user_webapp_url))]
+            [InlineKeyboardButton(text="🎰 Відкрити Казино WebApp 🚀", web_app=WebAppInfo(url=user_webapp_url))]
         ]
     )
     
     reply_kb = ReplyKeyboardMarkup(
         keyboard=[
-            [KeyboardButton(text="📱 Відкрити WebApp (Mini App)", web_app=WebAppInfo(url=user_webapp_url))],
-            [KeyboardButton(text="✈️ Грати (Текст)")],
+            [KeyboardButton(text="📱 Відкрити WebApp (Казино)", web_app=WebAppInfo(url=user_webapp_url))],
+            [KeyboardButton(text="✈️ Грати у Crash (Текст)")],
             [KeyboardButton(text="👤 Профіль"), KeyboardButton(text="🎁 Бонус")],
             [KeyboardButton(text="🏆 Топ"), KeyboardButton(text="⭐ Купити Stars")]
         ],
@@ -217,10 +226,10 @@ async def cmd_start(message: types.Message):
     )
     
     await message.answer(text, reply_markup=reply_kb, parse_mode="Markdown")
-    await message.answer("👇 Натисніть для запуску графічної гри:", reply_markup=inline_webapp_kb)
+    await message.answer("👇 Запустити повноекранне казино:", reply_markup=inline_webapp_kb)
     await spawn_live_game(message.chat.id)
 
-@dp.message(F.text == "✈️ Грати (Текст)")
+@dp.message(F.text == "✈️ Грати у Crash (Текст)")
 @dp.message(Command("fly"))
 async def handle_fly(message: types.Message):
     await spawn_live_game(message.chat.id)
@@ -257,21 +266,37 @@ async def spawn_live_game(chat_id: int):
 @dp.message(F.text == "👤 Профіль")
 @dp.message(Command("profile"))
 async def cmd_profile(message: types.Message):
+    user_id = message.from_user.id
     display_name = message.from_user.username or message.from_user.full_name or "Гравець"
-    user = get_user(message.from_user.id, display_name)
-    name_in_db = user[1] if user[1] else "Гравець"
+    user = get_user(user_id, display_name)
+    
     current_balance = user[2]
+    wins = user[4]
+    referrals = user[5]
+    joined_date = user[6]
+    rakeback = user[7]
+    max_win = user[8]
+    
+    days_with_us = max(1, (int(time.time()) - joined_date) // 86400)
     
     user_webapp_url = f"{WEBAPP_URL}?balance={current_balance}"
     kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="🚀 Відкрити WebApp з актуальним балансом 🎮", web_app=WebAppInfo(url=user_webapp_url))]
+        [InlineKeyboardButton(text="🚀 Відкрити WebApp казино 🎮", web_app=WebAppInfo(url=user_webapp_url))]
     ])
     
-    await message.answer(
-        f"👤 **Профіль:** {name_in_db}\n🆔 **ID:** `{user[0]}`\n💰 **Баланс:** `{current_balance}` ⭐", 
-        reply_markup=kb,
-        parse_mode="Markdown"
+    profile_text = (
+        f"👤 **Профіль:** @{message.from_user.username or 'user'}\n"
+        f"🏆 **Перемог:** {wins}\n"
+        f"👥 **Рефералів:** {referrals}\n"
+        f"⏳ **Днів з нами:** {days_with_us}\n"
+        f"💎 **Найкращий виграш:** {max_win} ⭐\n\n"
+        f"🎁 **Рейкбек:**\n"
+        f"Повернення 6% від програшу в іграх\n"
+        f"⭐ **{rakeback}** сума вашого рейкбеку\n\n"
+        f"💰 **Баланс:** `{current_balance}` ⭐"
     )
+    
+    await message.answer(profile_text, reply_markup=kb, parse_mode="Markdown")
 
 @dp.message(F.text == "🎁 Бонус")
 @dp.message(Command("bonus"))
@@ -283,7 +308,7 @@ async def cmd_bonus(message: types.Message):
     last_bonus = user[3]
     
     if now - last_bonus >= 86400:
-        update_balance(user_id, 5)
+        update_balance(user_id, 10)
         
         updated_user = get_user(user_id, display_name)
         new_balance = updated_user[2]
@@ -296,13 +321,12 @@ async def cmd_bonus(message: types.Message):
 
         new_webapp_url = f"{WEBAPP_URL}?balance={new_balance}"
         kb = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="🚀 Грати з оновленим балансом 🎮", web_app=WebAppInfo(url=new_webapp_url))]
+            [InlineKeyboardButton(text="🚀 Грати в казино 🎮", web_app=WebAppInfo(url=new_webapp_url))]
         ])
 
         await message.answer(
-            f"🎁 Ви успішно отримали щоденний бонус: **+5 ⭐**!\n"
-            f"💰 Ваш новий баланс: **{new_balance} ⭐**\n\n"
-            f"Запускайте WebApp за кнопкою нижче 👇", 
+            f"🎁 Ви успішно отримали щоденний бонус: **+10 ⭐**!\n"
+            f"💰 Ваш новий баланс: **{new_balance} ⭐**", 
             reply_markup=kb,
             parse_mode="Markdown"
         )
@@ -317,14 +341,14 @@ async def cmd_bonus(message: types.Message):
 async def cmd_top(message: types.Message):
     conn = sqlite3.connect("database.db")
     cursor = conn.cursor()
-    cursor.execute("SELECT username, balance FROM users ORDER BY balance DESC LIMIT 10")
+    cursor.execute("SELECT username, balance, wins FROM users ORDER BY balance DESC LIMIT 10")
     leaders = cursor.fetchall()
     conn.close()
 
-    text = "🏆 **ТОП-10 Гравців:**\n\n"
-    for idx, (username, balance) in enumerate(leaders, 1):
+    text = "🏆 **ТОП-10 Гравців казино:**\n\n"
+    for idx, (username, balance, wins) in enumerate(leaders, 1):
         name = username if username else "Гравець"
-        text += f"{idx}. **{name}** — `{balance}` ⭐\n"
+        text += f"{idx}. **{name}** — `{balance}` ⭐ (Перемог: {wins})\n"
         
     await message.answer(text, parse_mode="Markdown")
 
@@ -344,7 +368,7 @@ async def cmd_admin(message: types.Message):
     text = (
         "👑 **АДМІН-ПАНЕЛЬ**\n\n"
         f"👥 Усього користувачів: `{total_users or 0}`\n"
-        f"💎 Загальний баланс у грі: `{total_stars or 0}` ⭐\n\n"
+        f"💎 Загальний баланс у казино: `{total_stars or 0}` ⭐\n\n"
         "Оберіть дію нижче:"
     )
 
@@ -355,270 +379,4 @@ async def cmd_admin(message: types.Message):
 
     await message.answer(text, reply_markup=kb, parse_mode="Markdown")
 
-@dp.callback_query(F.data == "admin_broadcast")
-async def admin_broadcast_start(callback: types.CallbackQuery, state: FSMContext):
-    if callback.from_user.id != ADMIN_ID:
-        return
-    await state.set_state(GameStates.waiting_for_broadcast)
-    await callback.message.answer("📢 Надішліть текст повідомлення для розсилки всім гравцям:")
-    await callback.answer()
-
-@dp.message(GameStates.waiting_for_broadcast)
-async def admin_broadcast_send(message: types.Message, state: FSMContext):
-    await state.clear()
-    if message.from_user.id != ADMIN_ID:
-        return
-
-    conn = sqlite3.connect("database.db")
-    cursor = conn.cursor()
-    cursor.execute("SELECT user_id FROM users")
-    users = cursor.fetchall()
-    conn.close()
-
-    count = 0
-    for (u_id,) in users:
-        try:
-            await bot.send_message(u_id, f"📢 **НОВИНИ ТА ОНОВЛЕННЯ:**\n\n{message.text}", parse_mode="Markdown")
-            count += 1
-            await asyncio.sleep(0.05)
-        except Exception:
-            pass
-
-    await message.answer(f"✅ Розсилку успішно доставлено `{count}` користувачам!")
-
-@dp.callback_query(F.data == "admin_give")
-async def admin_give_start(callback: types.CallbackQuery, state: FSMContext):
-    if callback.from_user.id != ADMIN_ID:
-        return
-    await state.set_state(GameStates.waiting_for_give_id)
-    await callback.message.answer("✍️ Введіть **Telegram ID** користувача, якому хочете змінити баланс:")
-    await callback.answer()
-
-@dp.message(GameStates.waiting_for_give_id)
-async def admin_give_id(message: types.Message, state: FSMContext):
-    if message.from_user.id != ADMIN_ID:
-        return
-    if not message.text.isdigit():
-        await message.answer("❌ ID має складатися лише з цифр.")
-        return
-    
-    await state.update_data(target_id=int(message.text))
-    await state.set_state(GameStates.waiting_for_give_amount)
-    await message.answer("✍️ Введіть **кількість ⭐** (наприклад: `100` щоб додати, або `-50` щоб забрати):")
-
-@dp.message(GameStates.waiting_for_give_amount)
-async def admin_give_amount(message: types.Message, state: FSMContext):
-    if message.from_user.id != ADMIN_ID:
-        return
-    
-    try:
-        amount = int(message.text)
-        data = await state.get_data()
-        target_id = data["target_id"]
-        
-        # Гарантуємо, що запис користувача існує в БД
-        get_user(target_id, "Гравець")
-        
-        # Оновлюємо баланс
-        update_balance(target_id, amount)
-        
-        # Отримуємо точний новий баланс з бази
-        updated_user = get_user(target_id, "Гравець")
-        new_balance = updated_user[2]
-        
-        await state.clear()
-
-        await message.answer(f"✅ Успішно змінено баланс користувача `{target_id}` на `{amount}` ⭐!", parse_mode="Markdown")
-        
-        try:
-            target_webapp_url = f"{WEBAPP_URL}?balance={new_balance}"
-            kb = InlineKeyboardMarkup(inline_keyboard=[
-                [InlineKeyboardButton(text="🚀 Запустити WebApp 🎮", web_app=WebAppInfo(url=target_webapp_url))]
-            ])
-            await bot.send_message(
-                target_id, 
-                f"🎁 Адміністратор змінив ваш баланс на **{amount:+d} ⭐**!\n"
-                f"💰 Ваш актуальний баланс: **{new_balance} ⭐**",
-                reply_markup=kb,
-                parse_mode="Markdown"
-            )
-        except Exception:
-            pass
-    except ValueError:
-        await message.answer("❌ Будь ласка, введіть число (позитивне або негативне).")
-
-# ==================== 6. ЗБЕРЕЖЕННЯ ДАНИХ З WEBAPP ====================
-
-@dp.message(F.web_app_data)
-async def handle_webapp_data(message: types.Message):
-    raw_data = message.web_app_data.data
-    
-    if raw_data == "open_stars":
-        await cmd_stars(message)
-        return
-    elif raw_data == "open_bonus":
-        await cmd_bonus(message)
-        return
-
-    try:
-        data = json.loads(raw_data)
-        user_id = message.from_user.id
-        new_balance = data.get("new_balance")
-
-        if new_balance is not None:
-            conn = sqlite3.connect("database.db")
-            cursor = conn.cursor()
-            cursor.execute("UPDATE users SET balance = ? WHERE user_id = ?", (new_balance, user_id))
-            conn.commit()
-            conn.close()
-    except Exception as e:
-        logging.error(f"Помилка обробки WebApp даних: {e}")
-
-# ==================== 7. КНОПКИ ТА КУПІВЛЯ STARS ====================
-
-@dp.callback_query(F.data == "custom_bet")
-async def ask_custom_bet(callback: types.CallbackQuery, state: FSMContext):
-    if game.is_running:
-        await callback.answer("❌ Літак уже летить! Зачекайте наступного раунду.", show_alert=True)
-        return
-    
-    await state.set_state(GameStates.waiting_for_custom_bet)
-    await callback.message.answer("✍️ **Введіть суму вашої ставки числом** (наприклад: 25):")
-    await callback.answer()
-
-@dp.message(GameStates.waiting_for_custom_bet)
-async def process_custom_bet_input(message: types.Message, state: FSMContext):
-    await state.clear()
-    
-    if game.is_running:
-        await message.answer("❌ Раунд уже почався! Ваша ставка не прийнята.")
-        return
-
-    if not message.text.isdigit():
-        await message.answer("❌ Будь ласка, введіть тільки ціле число!")
-        return
-
-    amount = int(message.text)
-    if amount <= 0:
-        await message.answer("❌ Ставка має бути більше 0!")
-        return
-
-    user_id = message.from_user.id
-    display_name = message.from_user.username or message.from_user.full_name or "Гравець"
-    user = get_user(user_id, display_name)
-
-    if user[2] < amount:
-        await message.answer(f"❌ Недостатньо зірочок! Ваш баланс: {user[2]} ⭐")
-        return
-
-    update_balance(user_id, -amount)
-    conn = sqlite3.connect("database.db")
-    cursor = conn.cursor()
-    cursor.execute("INSERT OR REPLACE INTO bets (user_id, amount) VALUES (?, ?)", (user_id, amount))
-    conn.commit()
-    conn.close()
-
-    await message.answer(f"✅ Ваша ставка **{amount} ⭐** успішно прийнята!")
-
-@dp.callback_query(F.data.startswith("bet_"))
-async def process_bet(callback: types.CallbackQuery):
-    if game.is_running:
-        await callback.answer("❌ Літак уже летить! Зачекайте наступного раунду.", show_alert=True)
-        return
-
-    amount = int(callback.data.split("_")[1])
-    user_id = callback.from_user.id
-    display_name = callback.from_user.username or callback.from_user.full_name or "Гравець"
-    user = get_user(user_id, display_name)
-
-    if user[2] < amount:
-        await callback.answer("❌ Нестача зірочок на балансі! Натисніть «🎁 Бонус»", show_alert=True)
-        return
-
-    update_balance(user_id, -amount)
-    conn = sqlite3.connect("database.db")
-    cursor = conn.cursor()
-    cursor.execute("INSERT OR REPLACE INTO bets (user_id, amount) VALUES (?, ?)", (user_id, amount))
-    conn.commit()
-    conn.close()
-
-    await callback.answer(f"✅ Ставка {amount} ⭐ прийнята!", show_alert=True)
-
-@dp.callback_query(F.data == "cashout")
-async def process_cashout(callback: types.CallbackQuery):
-    user_id = callback.from_user.id
-    
-    if not game.is_running or game.crashed:
-        await callback.answer("💥 Літак уже впав!", show_alert=True)
-        return
-
-    if user_id not in game.bets or game.bets[user_id]["won"]:
-        await callback.answer("❌ У вас немає активної ставки або ви вже забрали виграш!", show_alert=True)
-        return
-
-    bet_amount = game.bets[user_id]["amount"]
-    win_amount = int(bet_amount * game.current_multiplier)
-    
-    game.bets[user_id]["won"] = True
-    update_balance(user_id, win_amount)
-
-    await callback.answer(f"🎉 Забрано {win_amount} ⭐ на {game.current_multiplier}x!", show_alert=True)
-
-@dp.message(F.text == "⭐ Купити Stars")
-@dp.message(Command("stars"))
-async def cmd_stars(message: types.Message):
-    kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="⭐ 50 Stars", callback_data="buy_50"),
-         InlineKeyboardButton(text="⭐ 100 Stars", callback_data="buy_100")],
-        [InlineKeyboardButton(text="⭐ 250 Stars", callback_data="buy_250"),
-         InlineKeyboardButton(text="⭐ 500 Stars", callback_data="buy_500")]
-    ])
-    await message.answer("Оберіть пакет Telegram Stars ⭐ для поповнення балансу:", reply_markup=kb)
-
-@dp.callback_query(F.data.startswith("buy_"))
-async def process_buy_stars(callback: types.CallbackQuery):
-    stars_count = int(callback.data.split("_")[1])
-    prices = [LabeledPrice(label="Поповнення балансу", amount=stars_count)]
-    
-    await callback.bot.send_invoice(
-        chat_id=callback.from_user.id,
-        title="Поповнення Stars",
-        description=f"Придбати {stars_count} Telegram Stars для гри в Crash",
-        payload=f"stars_pack_{stars_count}",
-        provider_token="",
-        currency="XTR",
-        prices=prices
-    )
-    await callback.answer()
-
-@dp.pre_checkout_query()
-async def process_pre_checkout(pre_checkout_query: PreCheckoutQuery):
-    await pre_checkout_query.answer(ok=True)
-
-@dp.message(F.successful_payment)
-async def process_successful_payment(message: types.Message):
-    stars_added = message.successful_payment.total_amount
-    update_balance(message.from_user.id, stars_added)
-    await message.answer(f"🎉 Дякуємо за підтримку! На ваш баланс зараховано **+{stars_added} ⭐**")
-
-# ==================== 8. ЗАПУСК ВЕБ-СЕРВЕРА ====================
-
-async def handle(request):
-    return web.Response(text="Bot is running!")
-
-async def main():
-    init_db()
-    asyncio.create_task(crash_game_loop())
-    
-    app = web.Application()
-    app.router.add_get("/", handle)
-    runner = web.AppRunner(app)
-    await runner.setup()
-    port = int(os.getenv("PORT", 8080))
-    site = web.TCPSite(runner, "0.0.0.0", port)
-    await site.start()
-    
-    await dp.start_polling(bot)
-
-if __name__ == "__main__":
-    asyncio.run(main())
+@dp.callback_query(F.data == "admin_broadcast
