@@ -55,7 +55,7 @@
       flex: 1;
       padding: 16px;
       overflow-y: auto;
-      padding-bottom: 80px;
+      padding-bottom: 90px;
     }
     .tab-content.active {
       display: flex;
@@ -274,22 +274,27 @@
       <div class="case-item">
         <h3>Free Case</h3>
         <p style="color:#eab308; font-size:13px; margin:4px 0;">0 ⭐</p>
-        <button class="case-btn" onclick="openCase(0)">Відкрити</button>
+        <button class="case-btn" onclick="openCustomCase('free')">Відкрити</button>
       </div>
       <div class="case-item">
         <h3>Gothic Case</h3>
         <p style="color:#eab308; font-size:13px; margin:4px 0;">50 ⭐</p>
-        <button class="case-btn" onclick="openCase(50)">Відкрити</button>
+        <button class="case-btn" onclick="openCustomCase('gothic')">Відкрити</button>
       </div>
       <div class="case-item">
         <h3>Cinema Case</h3>
-        <p style="color:#eab308; font-size:13px; margin:4px 0;">200 ⭐</p>
-        <button class="case-btn" onclick="openCase(200)">Відкрити</button>
+        <p style="color:#eab308; font-size:13px; margin:4px 0;">150 ⭐</p>
+        <button class="case-btn" onclick="openCustomCase('cinema')">Відкрити</button>
       </div>
       <div class="case-item">
         <h3>Fortune Case</h3>
-        <p style="color:#eab308; font-size:13px; margin:4px 0;">800 ⭐</p>
-        <button class="case-btn" onclick="openCase(800)">Відкрити</button>
+        <p style="color:#eab308; font-size:13px; margin:4px 0;">500 ⭐</p>
+        <button class="case-btn" onclick="openCustomCase('fortune')">Відкрити</button>
+      </div>
+      <div class="case-item" style="grid-column: span 2;">
+        <h3>Digital Case (Елітний)</h3>
+        <p style="color:#eab308; font-size:13px; margin:4px 0;">1500 ⭐</p>
+        <button class="case-btn" onclick="openCustomCase('digital')">Відкрити</button>
       </div>
     </div>
     <button class="action-btn" style="background:#64748b; margin-top:16px;" onclick="switchTab('game')">Назад до ігор</button>
@@ -312,23 +317,7 @@
     <div class="profile-card">
       <h2 style="margin-bottom: 16px;" id="prof-name">Профіль</h2>
       <div class="profile-row"><span>🆔 Telegram ID:</span><b id="prof-id">-</b></div>
-      <div class="profile-row"><span>🏆 Перемог у іграх:</span><b id="prof-wins">0</b></div>
-      <div class="profile-row"><span>💰 Баланс Stars:</span><b id="prof-balance" style="color:#f59e0b;">0 ⭐</b></div>
-    </div>
-
-    <div class="profile-card">
-      <h3 style="font-size: 15px; margin-bottom: 8px;">🤝 Реферальна система</h3>
-      <p style="font-size: 12px; color: #94a3b8; margin-bottom: 10px;">Запрошуйте друзів та отримуйте +20 ⭐ за кожного!</p>
-      <input type="text" id="refLinkInput" readonly style="width:100%; padding:10px; background:#0f172a; border:1px solid #334155; color:#fff; border-radius:8px; font-size:12px; margin-bottom:8px; text-align:center;" value="Генерація...">
-      <button class="action-btn" style="background:#3b82f6; margin-top:0;" onclick="copyRefLink()">Скопіювати посилання</button>
-    </div>
-
-    <button class="action-btn" style="background:#10b981; margin-top:4px;" onclick="openStarsMenu()">Поповнити через Stars ⭐</button>
-  </div>
-
-  <!-- НИЖНЯ ПАНЕЛЬ НАВІГАЦІЇ -->
-  <div class="nav-bar">
-    <div id="nav-game" class="nav-item active" onclick="switchTab('game')">
+      <div class="profile-row"><span>🏆
       <div>🏠</div>Головна
     </div>
     <div id="nav-cases" class="nav-item" onclick="switchTab
