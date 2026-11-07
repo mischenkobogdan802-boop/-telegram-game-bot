@@ -381,19 +381,19 @@
       }
     }
 
-    // Функція поповнення балансу (від 10 до 99999 зірок)
+    // Поповнення балансу через Telegram Stars (перенаправлення в бота для інвойсу)
     window.openTopUpModal = function() {
-      let input = prompt("Введіть кількість зірок для поповнення (від 10 до 99999):", "100");
+      let input = prompt("Введіть кількість зірок для поповнення (від 10 до 99999):", "50");
       if (input === null) return;
       let amount = parseInt(input, 10);
 
       if (isNaN(amount) || amount < 10 || amount > 99999) {
-        alert("❌ Помилка! Сума поповнення має бути від 10 до 99999 зірок.");
+        alert("❌ Сума має бути від 10 до 99999 ⭐.");
         return;
       }
 
-      syncWithBot(true, amount);
-      alert(`✅ Успішно! Баланс поповнено на ${amount} ⭐.`);
+      const botUsername = "mischenkobogdan802_bot";
+      tg.openTelegramLink(`https://t.me/${botUsername}?start=pay_${amount}`);
     };
 
     window.switchTab = function(tabName) {
@@ -702,11 +702,11 @@
       let slotWidth = pCanvas.width / multipliers.length;
       multipliers.forEach((m, i) => {
         if (i === 3 || i === 4) {
-          pCtx.fillStyle = '#ef4444'; 
+          pCtx.fillStyle = '#ef4444'; // Червоні посередині
         } else if (i === 2 || i === 5) {
-          pCtx.fillStyle = '#22c55e'; 
+          pCtx.fillStyle = '#22c55e'; // Зелені після червоного
         } else {
-          pCtx.fillStyle = '#f59e0b'; 
+          pCtx.fillStyle = '#f59e0b'; // Жовті по краях
         }
 
         pCtx.fillRect(i * slotWidth + 1, pCanvas.height - 25, slotWidth - 2, 22);
