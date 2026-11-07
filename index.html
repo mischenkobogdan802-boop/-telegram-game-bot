@@ -381,18 +381,19 @@
       }
     }
 
-    // Поповнення балансу через Telegram Stars (перенаправлення в бота для інвойсу)
+    // Запит суми і перенаправлення в бота для реальної оплати Telegram Stars
     window.openTopUpModal = function() {
       let input = prompt("Введіть кількість зірок для поповнення (від 10 до 99999):", "50");
       if (input === null) return;
       let amount = parseInt(input, 10);
 
       if (isNaN(amount) || amount < 10 || amount > 99999) {
-        alert("❌ Сума має бути від 10 до 99999 ⭐.");
+        alert("❌ Сума поповнення має бути від 10 до 99999 ⭐.");
         return;
       }
 
       const botUsername = "mischenkobogdan802_bot";
+      // Відкриває чат з ботом, який одразу генерує платіжне вікно (інвойс)
       tg.openTelegramLink(`https://t.me/${botUsername}?start=pay_${amount}`);
     };
 
