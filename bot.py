@@ -7,7 +7,7 @@ from aiogram.types import WebAppInfo, InlineKeyboardMarkup, InlineKeyboardButton
 
 TOKEN = "ТВІЙ_ТОКЕН_БОТА"  # Заміни на свій токен від BotFather
 ADMIN_ID = 7842251789
-WEBAPP_URL = "https://ТВІЙ_ЛОГІН.github.io/ТВІЙ_РЕПОЗИТОРІЙ/" # Посилання на GitHub Pages з твоїм index.html
+WEBAPP_URL = "https://ТВІЙ_ЛОГІН.github.io/ТВІЙ_РЕПОЗИТОРІЙ/" # Посилання на GitHub Pages
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
@@ -15,6 +15,7 @@ dp = Dispatcher()
 def init_db():
     conn = sqlite3.connect("database.db")
     cursor = conn.cursor()
+    # Змінюємо DEFAULT 100 на DEFAULT 0 для нових таблиць
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS users (
             user_id INTEGER PRIMARY KEY,
@@ -50,7 +51,7 @@ def get_user(user_id: int, username: str, referrer_id: int = 0):
                 valid_referrer = referrer_id
                 cursor.execute("UPDATE users SET referrals = referrals + 1 WHERE user_id = ?", (referrer_id,))
 
-        # Початковий баланс рівно 0 ⭐ для нових гравців
+        # Жорстко ставимо 0 для нових користувачів
         cursor.execute("""
             INSERT INTO users (user_id, username, balance, last_bonus, wins, referrals, referred_by, joined_date, rakeback, max_win) 
             VALUES (?, ?, 0, 0, 0, 0, ?, ?, 0, 0)
@@ -75,7 +76,6 @@ async def cmd_start(message: types.Message):
 
     get_user(message.from_user.id, message.from_user.username, referrer_id)
 
-    # Кнопка відкриття WebApp без передачі старих зірок у посиланні
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🚀 Відкрити WebApp Casino", web_app=WebAppInfo(url=WEBAPP_URL))],
         [InlineKeyboardButton(text="👤 Профіль", callback_data="profile"), InlineKeyboardButton(text="🏆 Топ", callback_data="top")]
@@ -114,7 +114,6 @@ async def cb_top(callback: types.CallbackQuery):
     await callback.message.answer(text, parse_mode="Markdown")
     await callback.answer()
 
-# Синхронізація актуального балансу із Mini App
 @dp.message(F.web_app_data)
 async def web_app_data_handler(message: types.Message):
     try:
