@@ -317,7 +317,354 @@
     <div class="profile-card">
       <h2 style="margin-bottom: 16px;" id="prof-name">Профіль</h2>
       <div class="profile-row"><span>🆔 Telegram ID:</span><b id="prof-id">-</b></div>
-      <div class="profile-row"><span>🏆
+      <div class="profile-row"><span>🏆 Перемог у іграх:</span><b id="prof-wins">0</b></div>
+      <div class="profile-row"><span>💰 Баланс Stars:</span><b id="prof-balance" style="color:#f59e0b;">0 ⭐</b></div>
+    </div>
+
+    <div class="profile-card">
+      <h3 style="font-size: 15px; margin-bottom: 8px;">🤝 Реферальна система</h3>
+      <p style="font-size: 12px; color: #94a3b8; margin-bottom: 10px;">Запрошуйте друзів та отримуйте +20 ⭐ за кожного!</p>
+      <input type="text" id="refLinkInput" readonly style="width:100%; padding:10px; background:#0f172a; border:1px solid #334155; color:#fff; border-radius:8px; font-size:12px; margin-bottom:8px; text-align:center;" value="Генерація...">
+      <button class="action-btn" style="background:#3b82f6; margin-top:0;" onclick="copyRefLink()">Скопіювати посилання</button>
+    </div>
+
+    <button class="action-btn" style="background:#10b981; margin-top:4px;" onclick="openStarsMenu()">Поповнити через Stars ⭐</button>
+  </div>
+
+  <!-- НИЖНЯ ПАНЕЛЬ НАВІГАЦІЇ -->
+  <div class="nav-bar">
+    <div id="nav-game" class="nav-item active" onclick="switchTab('game')">
       <div>🏠</div>Головна
     </div>
-    <div id="nav-cases" class="nav-item" onclick="switchTab
+    <div id="nav-cases" class="nav-item" onclick="switchTab('cases')">
+      <div>🎁</div>Кейси
+    </div>
+    <div id="nav-top" class="nav-item" onclick="switchTab('top')">
+      <div>🏆</div>Рейтинг
+    </div>
+    <div id="nav-profile" class="nav-item" onclick="switchTab('profile')">
+      <div>👤</div>Профіль
+    </div>
+  </div>
+
+  <script>
+    const tg = window.Telegram.WebApp;
+    tg.expand();
+
+    let userBalance = 100;
+    let userWins = 0;
+
+    const user = tg.initDataUnsafe?.user;
+    if (user) {
+      document.getElementById('username-display').innerText = user.first_name;
+      document.getElementById('prof-name').innerText = user.first_name;
+      document.getElementById('prof-id').innerText = user.id;
+
+      const botUsername = "mischenkobogdan802_bot"; 
+      document.getElementById('refLinkInput').value = `https://t.me/${botUsername}?start=ref_${user.id}`;
+    }
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const balanceFromBot = urlParams.get('balance');
+    if (balanceFromBot !== null) {
+      userBalance = parseInt(balanceFromBot, 10);
+    }
+
+    function updateBalanceDisplay() {
+      document.getElementById('balance').innerText = userBalance;
+      document.getElementById('prof-balance').innerText = userBalance + " ⭐";
+      const winsEl = document.getElementById('prof-wins');
+      if (winsEl) winsEl.innerText = userWins;
+    }
+
+    function syncWithBot(won, amount) {
+      userBalance += amount;
+      if (won) userWins++;
+      updateBalanceDisplay();
+
+      if (window.Telegram && window.Telegram.WebApp) {
+        window.Telegram.WebApp.sendData(JSON.stringify({
+          new_balance: userBalance,
+          won: won,
+          win_amount: amount > 0 ? amount : 0
+        }));
+      }
+    }
+
+    // Універсальна функція для перемикання вкладок
+    function switchTab(tabName) {
+      document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+      document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+
+      const targetTab = document.getElementById('tab-' + tabName);
+      if (targetTab) {
+        targetTab.classList.add('active');
+      }
+
+      // Підсвічуємо нижню навігацію якщо це головний розділ
+      const bottomNavMap = { 'game': 'game', 'cases': 'cases', 'top': 'top', 'profile': 'profile' };
+      if (bottomNavMap[tabName]) {
+        const targetNav = document.getElementById('nav-' + bottomNavMap[tabName]);
+        if (targetNav) targetNav.classList.add('active');
+      }
+
+      if (tabName === 'mines') initMinesBoard();
+      if (tabName === 'plinko') drawPlinkoBoard();
+    }
+
+    // --- КЕЙСИ ---
+    function openCustomCase(type) {
+      let cost = 0;
+      let possiblePrizes = [];
+      let nftChance = 0.000001;
+
+      if (type === 'free') {
+        cost = 0;
+        possiblePrizes = [1, 2, 3, 5, 10, 15];
+      } else if (type === 'gothic') {
+        cost = 50;
+        possiblePrizes = [5, 10, 15, 20, 30, 30];
+        nftChance = 0.00001;
+      } else if (type === 'cinema') {
+        cost = 150;
+        possiblePrizes = [10, 30, 50, 70, 90];
+        nftChance = 0.000001;
+      } else if (type === 'fortune') {
+        cost = 500;
+        possiblePrizes = [50, 100, 200, 250, 300];
+        nftChance = 0.05;
+      } else if (type === 'digital') {
+        cost = 1500;
+        possiblePrizes = [400, 600, 1000, 1500, 2000, 3000];
+        nftChance = 0.20;
+      }
+
+      if (userBalance < cost) {
+        alert('Недостатньо зірочок для відкриття цього кейсу!');
+        return;
+      }
+
+      if (cost > 0) {
+        syncWithBot(false, -cost);
+      }
+
+      let hitNft = Math.random() < nftChance;
+
+      if (hitNft) {
+        alert('💎 ОГО! ВИ ВИБИЛИ РІДКІСНУ NFT У КЕЙСІ!');
+        syncWithBot(true, cost * 10);
+      } else {
+        let prize = possiblePrizes[Math.floor(Math.random() * possiblePrizes.length)];
+        syncWithBot(true, prize);
+        alert(`🎉 Вітаємо! Ви відкрили кейс і виграли ${prize} ⭐!`);
+      }
+    }
+
+    // --- РАКЕТА (CRASH) ---
+    let crashActive = false;
+    function startCrashGame() {
+      if (crashActive) return;
+      if (userBalance < 10) {
+        alert('Недостатньо зірочок!');
+        return;
+      }
+      syncWithBot(false, -10);
+      crashActive = true;
+      let mult = 1.00;
+      let target = 1.2 + Math.random() * 3.5;
+      const mElem = document.getElementById('crashMultiplier');
+      const btn = document.getElementById('crashBtn');
+      btn.innerText = 'Політ... (Чекайте)';
+
+      let timer = setInterval(() => {
+        mult += 0.05;
+        mElem.innerText = mult.toFixed(2) + 'x';
+        if (mult >= target) {
+          clearInterval(timer);
+          alert(`💥 Ракета вибухнула на ${target.toFixed(2)}x! Програш.`);
+          crashActive = false;
+          btn.innerText = 'Запустити ракету (10 ⭐)';
+          mElem.innerText = '1.00x';
+        } else if (Math.random() < 0.05 && mult > 1.3) {
+          clearInterval(timer);
+          let win = Math.floor(10 * mult);
+          syncWithBot(true, win);
+          alert(`🎉 Ви успішно забрали виграш: ${win} ⭐ (${mult.toFixed(2)}x)!`);
+          crashActive = false;
+          btn.innerText = 'Запустити ракету (10 ⭐)';
+          mElem.innerText = '1.00x';
+          return;
+        }
+      }, 100);
+    }
+
+    // --- МІНИ (ПОВНІСТЮ РОБОЧІ) ---
+    let minesActive = false;
+    let minesMultiplier = 1.0;
+    let revealedCount = 0;
+
+    function initMinesBoard() {
+      const container = document.getElementById('minesContainer');
+      if (!container) return;
+      container.innerHTML = '';
+      revealedCount = 0;
+      for (let i = 0; i < 9; i++) {
+        const cell = document.createElement('div');
+        cell.className = 'mine-cell';
+        cell.innerText = '❓';
+        cell.onclick = () => clickMineCell(cell);
+        container.appendChild(cell);
+      }
+    }
+
+    function startMinesGame() {
+      if (userBalance < 10) {
+        alert('Недостатньо зірочок на балансі!');
+        return;
+      }
+      
+      if (minesActive) {
+        const prize = Math.floor(10 * minesMultiplier);
+        syncWithBot(true, prize);
+        alert(`🎉 Ви успішно забрали виграш: ${prize} ⭐!`);
+        minesActive = false;
+        document.getElementById('minesBtn').innerText = 'Почати гру (10 ⭐)';
+        initMinesBoard();
+        return;
+      }
+
+      syncWithBot(false, -10);
+      minesActive = true;
+      minesMultiplier = 1.0;
+      revealedCount = 0;
+      document.getElementById('minesBtn').innerText = 'Забрати виграш';
+      initMinesBoard();
+    }
+
+    function clickMineCell(cell) {
+      if (!minesActive) {
+        alert('Спочатку натисніть «Почати гру (10 ⭐)»!');
+        return;
+      }
+      if (cell.classList.contains('revealed')) return;
+
+      const isMine = Math.random() < 0.30; 
+
+      if (!isMine) {
+        minesMultiplier = +(minesMultiplier * 1.35).toFixed(2);
+        cell.innerText = '💎';
+        cell.classList.add('revealed');
+        revealedCount++;
+
+        if (revealedCount >= 9) {
+          const prize = Math.floor(10 * minesMultiplier);
+          syncWithBot(true, prize);
+          alert(`🏆 НЕЙМОВІРНО! Ви відкрили всі комірки та виграли ${prize} ⭐!`);
+          minesActive = false;
+          document.getElementById('minesBtn').innerText = 'Почати гру (10 ⭐)';
+          initMinesBoard();
+        }
+      } else {
+        cell.innerText = '💣';
+        cell.classList.add('revealed');
+        alert('💥 Ви натрапили на міну! Гра закінчилась, ставка згоріла.');
+        minesActive = false;
+        document.getElementById('minesBtn').innerText = 'Почати гру (10 ⭐)';
+        
+        document.querySelectorAll('.mine-cell').forEach(c => {
+          if (!c.classList.contains('revealed')) {
+            c.innerText = Math.random() > 0.5 ? '💎' : '💣';
+            c.classList.add('revealed');
+          }
+        });
+      }
+    }
+
+    // --- ПЛІНКО ---
+    const pCanvas = document.getElementById('plinkoCanvas');
+    const pCtx = pCanvas ? pCanvas.getContext('2d') : null;
+    const multipliers = [4, 2, 1.2, 0.5, 1.2, 2, 4];
+    let ball = null;
+
+    function drawPlinkoBoard() {
+      if (!pCtx) return;
+      pCtx.clearRect(0, 0, pCanvas.width, pCanvas.height);
+      pCtx.fillStyle = '#94a3b8';
+      
+      for (let r = 0; r < 5; r++) {
+        let pins = r + 2;
+        let spacing = 32;
+        let startX = (pCanvas.width - (pins - 1) * spacing) / 2;
+        for (let p = 0; p < pins; p++) {
+          pCtx.beginPath();
+          pCtx.arc(startX + p * spacing, 40 + r * 35, 3, 0, Math.PI * 2);
+          pCtx.fill();
+        }
+      }
+
+      let slotWidth = pCanvas.width / multipliers.length;
+      multipliers.forEach((m, i) => {
+        pCtx.fillStyle = m >= 2 ? '#f59e0b' : '#334155';
+        pCtx.fillRect(i * slotWidth + 2, pCanvas.height - 25, slotWidth - 4, 22);
+        pCtx.fillStyle = '#fff';
+        pCtx.font = '10px sans-serif';
+        pCtx.textAlign = 'center';
+        pCtx.fillText(m + 'x', i * slotWidth + slotWidth / 2, pCanvas.height - 11);
+      });
+
+      if (ball) {
+        pCtx.beginPath();
+        pCtx.arc(ball.x, ball.y, 6, 0, Math.PI * 2);
+        pCtx.fillStyle = '#22c55e';
+        pCtx.fill();
+      }
+    }
+
+    function dropPlinkoBall() {
+      if (userBalance < 10) {
+        alert('Недостатньо зірочок!');
+        return;
+      }
+      syncWithBot(false, -10);
+
+      ball = { x: pCanvas.width / 2, y: 15, vx: (Math.random() - 0.5) * 2, vy: 2 };
+
+      function updateBall() {
+        if (!ball) return;
+        ball.y += ball.vy;
+        ball.x += ball.vx;
+        ball.vy += 0.12;
+
+        if (ball.y >= pCanvas.height - 30) {
+          let slotWidth = pCanvas.width / multipliers.length;
+          let idx = Math.floor(ball.x / slotWidth);
+          idx = Math.max(0, Math.min(idx, multipliers.length - 1));
+          let win = Math.floor(10 * multipliers[idx]);
+          ball = null;
+          drawPlinkoBoard();
+          syncWithBot(true, win);
+          alert(`🎉 Виграш у Плінко: ${win} ⭐!`);
+          return;
+        }
+        drawPlinkoBoard();
+        requestAnimationFrame(updateBall);
+      }
+      updateBall();
+    }
+
+    function copyRefLink() {
+      const input = document.getElementById('refLinkInput');
+      input.select();
+      navigator.clipboard.writeText(input.value);
+      alert('✅ Реферальне посилання скопійовано!');
+    }
+
+    function openStarsMenu() {
+      tg.sendData("open_stars");
+      tg.close();
+    }
+
+    updateBalanceDisplay();
+  </script>
+</body>
+</html>
