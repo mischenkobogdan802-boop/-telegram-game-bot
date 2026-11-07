@@ -5,8 +5,8 @@ from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command
 from aiogram.types import WebAppInfo, InlineKeyboardMarkup, InlineKeyboardButton
 
-TOKEN = "ТВІЙ_ТОКЕН_БОТА"  # Заміни на свій токен
-WEBAPP_URL = "https://ТВІЙ_ЛОГІН.github.io/ТВІЙ_РЕПОЗИТОРІЙ/" # Посилання на GitHub Pages
+TOKEN = "ТВІЙ_ТОКЕН_БОТА"  # Заміни на свій токен від BotFather
+WEBAPP_URL = "https://ТВІЙ_ЛОГІН.github.io/ТВІЙ_РЕПОЗИТОРІЙ/" # Посилання на твій GitHub Pages
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
@@ -44,7 +44,7 @@ async def cmd_start(message: types.Message):
         conn.commit()
     conn.close()
 
-    # Залишаємо суворо одну кнопку для відкриття міні-застосунку
+    # Тільки одна кнопка відкриття WebApp. Жодних інших кнопок чи меню немає!
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🎰 Відкрити Казино WebApp", web_app=WebAppInfo(url=WEBAPP_URL))]
     ])
