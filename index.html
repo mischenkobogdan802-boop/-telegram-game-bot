@@ -237,7 +237,6 @@
       <div class="game-card" onclick="switchTab('crash')"><span>🚀</span><h3>Ракета (Crash)</h3></div>
       <div class="game-card" onclick="switchTab('mines')"><span>💣</span><h3>Міни</h3></div>
       <div class="game-card" onclick="switchTab('cases')"><span>🎁</span><h3>Кейси</h3></div>
-      <div class="game-card" onclick="switchTab('plinko')"><span>⚪</span><h3>Плінко</h3></div>
     </div>
   </div>
 
@@ -265,15 +264,6 @@
     <p style="color:var(--text-muted); font-size:13px; margin: 6px 0 14px 0;">Ставка: 10 - 99999 ⭐</p>
     <div class="mines-grid" id="minesContainer"></div>
     <button class="action-btn" id="minesBtn" onclick="startMinesGame()">Почати гру (10 ⭐)</button>
-    <button class="action-btn" style="background:#475569; box-shadow:none; margin-top:10px;" onclick="switchTab('game')">Назад</button>
-  </div>
-
-  <div id="tab-plinko" class="tab-content">
-    <h2>⚪ Гра «Плінко»</h2>
-    <div style="background:var(--bg-card); backdrop-filter:blur(10px); border-radius:20px; padding:14px; text-align:center; border:1px solid var(--border-color);">
-      <canvas id="plinkoCanvas" width="300" height="260" style="background:rgba(6,8,20,0.6); border-radius:12px; display:block; margin: 0 auto; border:1px solid var(--border-color);"></canvas>
-      <button class="action-btn" onclick="dropPlinkoBall()">Кінути кульку (10 ⭐)</button>
-    </div>
     <button class="action-btn" style="background:#475569; box-shadow:none; margin-top:10px;" onclick="switchTab('game')">Назад</button>
   </div>
 
@@ -381,7 +371,6 @@
       }
     }
 
-    // Запит суми і перенаправлення в бота для реальної оплати Telegram Stars
     window.openTopUpModal = function() {
       let input = prompt("Введіть кількість зірок для поповнення (від 10 до 99999):", "50");
       if (input === null) return;
@@ -393,7 +382,6 @@
       }
 
       const botUsername = "mischenkobogdan802_bot";
-      // Відкриває чат з ботом, який одразу генерує платіжне вікно (інвойс)
       tg.openTelegramLink(`https://t.me/${botUsername}?start=pay_${amount}`);
     };
 
@@ -417,7 +405,6 @@
       }
 
       if (tabName === 'mines') initMinesBoard();
-      if (tabName === 'plinko') drawPlinkoBoard();
       if (tabName === 'crash') initCrashCanvas();
     };
 
@@ -682,67 +669,6 @@
         }
       }
     }
-
-    // --- ПЛІНКО ---
-    const pCanvas = document.getElementById('plinkoCanvas');
-    const pCtx = pCanvas ? pCanvas.getContext('2d') : null;
-    const multipliers = [0.2, 0.5, 0.8, 1.5, 2, 5, 10, 20];
-    let ball = null;
-
-    function drawPlinkoBoard() {
-      if (!pCtx) return;
-      pCtx.clearRect(0, 0, pCanvas.width, pCanvas.height);
-      pCtx.fillStyle = '#94a3b8';
-      for (let r = 0; r < 5; r++) {
-        let pins = r + 2; let spacing = 28;
-        let startX = (pCanvas.width - (pins - 1) * spacing) / 2;
-        for (let p = 0; p < pins; p++) {
-          pCtx.beginPath(); pCtx.arc(startX + p * spacing, 25 + r * 26, 3, 0, Math.PI * 2); pCtx.fill();
-        }
-      }
-      let slotWidth = pCanvas.width / multipliers.length;
-      multipliers.forEach((m, i) => {
-        if (i === 3 || i === 4) {
-          pCtx.fillStyle = '#ef4444'; // Червоні посередині
-        } else if (i === 2 || i === 5) {
-          pCtx.fillStyle = '#22c55e'; // Зелені після червоного
-        } else {
-          pCtx.fillStyle = '#f59e0b'; // Жовті по краях
-        }
-
-        pCtx.fillRect(i * slotWidth + 1, pCanvas.height - 25, slotWidth - 2, 22);
-        pCtx.fillStyle = '#fff'; pCtx.font = '9px sans-serif'; pCtx.textAlign = 'center';
-        pCtx.fillText(m + 'x', i * slotWidth + slotWidth / 2, pCanvas.height - 11);
-      });
-      if (ball) {
-        pCtx.beginPath(); pCtx.arc(ball.x, ball.y, 6, 0, Math.PI * 2);
-        pCtx.fillStyle = '#22c55e'; pCtx.fill();
-      }
-    }
-
-    window.dropPlinkoBall = function() {
-      if (userBalance < 10) { alert('Мінімальна ставка 10 ⭐!'); return; }
-      syncWithBot(false, -10);
-      ball = { x: pCanvas.width / 2, y: 10, vx: (Math.random() - 0.5) * 2, vy: 2 };
-
-      function updateBall() {
-        if (!ball) return;
-        ball.y += ball.vy; ball.x += ball.vx; ball.vy += 0.12;
-        if (ball.y >= pCanvas.height - 30) {
-          let slotWidth = pCanvas.width / multipliers.length;
-          let idx = Math.floor(ball.x / slotWidth);
-          let mult = multipliers[Math.max(0, Math.min(idx, multipliers.length - 1))];
-          let win = Math.floor(10 * mult);
-          ball = null; drawPlinkoBoard();
-          syncWithBot(true, win);
-          alert(`🎉 Виграш у Плінко: ${win} ⭐ (${mult}x)!`);
-          return;
-        }
-        drawPlinkoBoard();
-        requestAnimationFrame(updateBall);
-      }
-      updateBall();
-    };
 
     window.copyRefLink = function() {
       const input = document.getElementById('refLinkInput');
