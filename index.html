@@ -228,7 +228,7 @@
 
   <div class="header">
     <div class="user-info"><span id="username-display">Гравець</span></div>
-    <div class="balance-badge" onclick="switchTab('profile')">⭐ <span id="balance">0</span> ➕</div>
+    <div class="balance-badge" onclick="openTopUpModal()">⭐ <span id="balance">0</span> ➕</div>
   </div>
 
   <div id="tab-game" class="tab-content active">
@@ -331,7 +331,7 @@
       <button class="action-btn" style="background:linear-gradient(135deg, #3b82f6, #1d4ed8); margin-top:0;" onclick="copyRefLink()">Скопіювати</button>
     </div>
 
-    <button class="action-btn" style="background:linear-gradient(135deg, #10b981, #047857); margin-top:4px;" onclick="openStarsMenu()">Поповнити через Stars ⭐</button>
+    <button class="action-btn" style="background:linear-gradient(135deg, #10b981, #047857); margin-top:4px;" onclick="openTopUpModal()">Поповнити баланс ⭐</button>
   </div>
 
   <div class="nav-bar">
@@ -380,6 +380,21 @@
         }));
       }
     }
+
+    // Функція поповнення балансу (від 10 до 99999 зірок)
+    window.openTopUpModal = function() {
+      let input = prompt("Введіть кількість зірок для поповнення (від 10 до 99999):", "100");
+      if (input === null) return;
+      let amount = parseInt(input, 10);
+
+      if (isNaN(amount) || amount < 10 || amount > 99999) {
+        alert("❌ Помилка! Сума поповнення має бути від 10 до 99999 зірок.");
+        return;
+      }
+
+      syncWithBot(true, amount);
+      alert(`✅ Успішно! Баланс поповнено на ${amount} ⭐.`);
+    };
 
     window.switchTab = function(tabName) {
       document.querySelectorAll('.tab-content').forEach(tab => {
@@ -667,7 +682,7 @@
       }
     }
 
-    // --- ПЛІНКО (Кольори: Червоні в центрі, далі Зелені, далі Жовті по краях) ---
+    // --- ПЛІНКО ---
     const pCanvas = document.getElementById('plinkoCanvas');
     const pCtx = pCanvas ? pCanvas.getContext('2d') : null;
     const multipliers = [0.2, 0.5, 0.8, 1.5, 2, 5, 10, 20];
@@ -686,14 +701,12 @@
       }
       let slotWidth = pCanvas.width / multipliers.length;
       multipliers.forEach((m, i) => {
-        // Кольори лунок за вашим запитом:
-        // Центр (індекси 3 та 4) — червоні; Зелені навколо; Жовті по краях
         if (i === 3 || i === 4) {
-          pCtx.fillStyle = '#ef4444'; // Червоний у центрі
+          pCtx.fillStyle = '#ef4444'; 
         } else if (i === 2 || i === 5) {
-          pCtx.fillStyle = '#22c55e'; // Зелений після червоного
+          pCtx.fillStyle = '#22c55e'; 
         } else {
-          pCtx.fillStyle = '#f59e0b'; // Жовтий по краях
+          pCtx.fillStyle = '#f59e0b'; 
         }
 
         pCtx.fillRect(i * slotWidth + 1, pCanvas.height - 25, slotWidth - 2, 22);
@@ -737,7 +750,6 @@
       alert('✅ Посилання скопійовано!');
     };
 
-    window.openStarsMenu = function() { tg.sendData("open_stars"); tg.close(); };
     updateBalanceDisplay();
   </script>
 </body>
