@@ -45,12 +45,9 @@ async def cmd_start(message: types.Message):
         cursor.execute("INSERT INTO users (user_id, username, balance, wins, referrals, referred_by, joined_date) VALUES (?, ?, 0, 0, 0, 0, ?)", 
                        (user_id, username, int(time.time())))
         conn.commit()
-        current_balance = 0
-    else:
-        current_balance = row[1]
     conn.close()
 
-    # Перевірка, чи користувач прийшов за посиланням поповнення з Mini App (наприклад, /start pay_50)
+    # Якщо користувач натиснув поповнення у вебзастосунку і бот перенаправив його сюди
     if len(args) > 1 and args[1].startswith("pay_"):
         try:
             amount = int(args[1].replace("pay_", ""))
@@ -61,7 +58,7 @@ async def cmd_start(message: types.Message):
                     title="Поповнення балансу",
                     description=f"Придбати {amount} ⭐ для гри в казино",
                     payload=f"topup_{amount}",
-                    currency="XTR",
+                    currency="XTR",  # Офіційна валюта Telegram Stars
                     prices=prices
                 )
                 return
@@ -82,6 +79,7 @@ async def cmd_start(message: types.Message):
 async def pre_checkout_query_handler(pre_checkout_query: types.PreCheckoutQuery):
     await bot.answer_pre_checkout_query(pre_checkout_query.id, ok=True)
 
+# Зірки зараховуються ВИКЛЮЧНО після успішної оплати через Telegram
 @dp.message(F.successful_payment)
 async def successful_payment_handler(message: types.Message):
     payment_info = message.successful_payment
@@ -100,7 +98,12 @@ async def successful_payment_handler(message: types.Message):
         new_balance = cursor.fetchone()[0]
         conn.close()
         
-        await message.answer(f"✅ Успішно! Ваш баланс поповнено на {amount} ⭐. Поточний баланс: {new_balance} ⭐")
+        await message.answer(
+            f"✅ Успішно! З вашого рахунку списано зірки, і баланс поповнено на **{amount} ⭐**.\n"
+            f"💰 Поточний баланс: **{new_balance} ⭐**\n\n"
+            f"Тепер ви можете повернутися у застосунок — баланс оновиться автоматично!",
+            parse_mode="Markdown"
+        )
 
 @dp.message(F.web_app_data)
 async def web_app_data_handler(message: types.Message):
@@ -115,6 +118,10 @@ async def web_app_data_handler(message: types.Message):
             conn.close()
     except Exception as e:
         print(f"Помилка синхронізації: {e}")
+
+if __name__ == "__main__":
+    print("Бот запущено...")
+    dp.run_polling(bot)
 
 if __name__ == "__main__":
     print("Бот запущено...")
