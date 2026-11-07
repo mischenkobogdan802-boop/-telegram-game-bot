@@ -150,7 +150,7 @@
     }
     .profile-row:last-child { border-bottom: none; }
 
-    /* Таблиця лідерів */
+    /* Таблиця лідерів (Рейтинг) */
     .leader-row {
       display: flex;
       justify-content: space-between;
@@ -160,6 +160,7 @@
       border-radius: 12px;
       margin-bottom: 8px;
       border: 1px solid #334155;
+      font-size: 14px;
     }
 
     /* Кнопки дій */
@@ -216,7 +217,7 @@
   <div id="tab-game" class="tab-content active">
     <div class="section-title">⚡ Найкращі ігри</div>
     <div class="games-grid">
-      <div class="game-card" onclick="alert('Ракета доступна у чаті бота через текстову команду або кнопку старт!')">
+      <div class="game-card" onclick="switchTab('crash')">
         <span>🚀</span>
         <h3>Ракета (Crash)</h3>
       </div>
@@ -235,13 +236,24 @@
     </div>
   </div>
 
+  <!-- ВКЛАДКА: РАКЕТА (CRASH) -->
+  <div id="tab-crash" class="tab-content">
+    <h2>🚀 Гра «Ракета»</h2>
+    <p style="color:#94a3b8; font-size:13px; margin: 8px 0;">Слідкуйте за польотом і встигніть забрати виграш!</p>
+    <div style="background:#1e293b; border-radius:16px; padding:24px; text-align:center; border:1px solid #334155; margin-top:12px;">
+      <div id="crashMultiplier" style="font-size: 48px; font-weight: bold; color: #38bdf8; margin: 20px 0;">1.00x</div>
+      <button class="action-btn" id="crashBtn" onclick="startCrashGame()">Запустити ракету (10 ⭐)</button>
+    </div>
+    <button class="action-btn" style="background:#64748b; margin-top:12px;" onclick="switchTab('game')">Назад до ігор</button>
+  </div>
+
   <!-- ВКЛАДКА: МІНИ -->
   <div id="tab-mines" class="tab-content">
     <h2>💣 Гра «Міни»</h2>
     <p style="color:#94a3b8; font-size:13px; margin: 8px 0;">Знайдіть безпечні комірки та заберіть виграш!</p>
     <div class="mines-grid" id="minesContainer"></div>
     <button class="action-btn" id="minesBtn" onclick="startMinesGame()">Почати гру (10 ⭐)</button>
-    <button class="action-btn" style="background:#64748b; margin-top:8px;" onclick="switchTab('game')">Назад</button>
+    <button class="action-btn" style="background:#64748b; margin-top:8px;" onclick="switchTab('game')">Назад до ігор</button>
   </div>
 
   <!-- ВКЛАДКА: ПЛІНКО -->
@@ -252,7 +264,7 @@
       <canvas id="plinkoCanvas" width="300" height="340" style="background:#0f172a; border-radius:12px; display:block; margin: 0 auto;"></canvas>
       <button class="action-btn" onclick="dropPlinkoBall()">Кінути кульку (10 ⭐)</button>
     </div>
-    <button class="action-btn" style="background:#64748b; margin-top:12px;" onclick="switchTab('game')">Назад</button>
+    <button class="action-btn" style="background:#64748b; margin-top:12px;" onclick="switchTab('game')">Назад до ігор</button>
   </div>
 
   <!-- ВКЛАДКА 2: КЕЙСИ -->
@@ -280,15 +292,19 @@
         <button class="case-btn" onclick="openCase(800)">Відкрити</button>
       </div>
     </div>
+    <button class="action-btn" style="background:#64748b; margin-top:16px;" onclick="switchTab('game')">Назад до ігор</button>
   </div>
 
-  <!-- ВКЛАДКА 3: ЛІДЕРИ -->
+  <!-- ВКЛАДКА 3: РЕЙТИНГ (ТОП ГРАВЦІВ) -->
   <div id="tab-top" class="tab-content">
-    <div class="section-title">🏆 Топ-10 гравців</div>
+    <div class="section-title">🏆 Рейтинг найкращих гравців</div>
     <div class="leader-row"><span>1. gomax</span><b>206,136 ⭐</b></div>
     <div class="leader-row"><span>2. mc_traher66</span><b>119,717 ⭐</b></div>
     <div class="leader-row"><span>3. Gorto</span><b>89,099 ⭐</b></div>
     <div class="leader-row"><span>4. Vlad</span><b>47,590 ⭐</b></div>
+    <div class="leader-row"><span>5. саидик</span><b>46,126 ⭐</b></div>
+    <div class="leader-row"><span>6. Madina</span><b>44,125 ⭐</b></div>
+    <div class="leader-row"><span>7. Danilka</span><b>43,267 ⭐</b></div>
   </div>
 
   <!-- ВКЛАДКА 4: ПРОФІЛЬ ТА РЕФЕРАЛИ -->
@@ -315,223 +331,4 @@
     <div id="nav-game" class="nav-item active" onclick="switchTab('game')">
       <div>🏠</div>Головна
     </div>
-    <div id="nav-cases" class="nav-item" onclick="switchTab('cases')">
-      <div>🎁</div>Кейси
-    </div>
-    <div id="nav-top" class="nav-item" onclick="switchTab('top')">
-      <div>🏆</div>Лідери
-    </div>
-    <div id="nav-profile" class="nav-item" onclick="switchTab('profile')">
-      <div>👤</div>Профіль
-    </div>
-  </div>
-
-  <script>
-    const tg = window.Telegram.WebApp;
-    tg.expand();
-
-    let userBalance = 100;
-    let userWins = 0;
-
-    const user = tg.initDataUnsafe?.user;
-    if (user) {
-      document.getElementById('username-display').innerText = user.first_name;
-      document.getElementById('prof-name').innerText = user.first_name;
-      document.getElementById('prof-id').innerText = user.id;
-
-      // Генерація реферального посилання (замініть my_casino_bot на юзернейм вашого бота з BotFather)
-      const botUsername = "my_casino_bot"; 
-      document.getElementById('refLinkInput').value = `https://t.me/${botUsername}?start=ref_${user.id}`;
-    }
-
-    const urlParams = new URLSearchParams(window.location.search);
-    const balanceFromBot = urlParams.get('balance');
-    if (balanceFromBot !== null) {
-      userBalance = parseInt(balanceFromBot, 10);
-    }
-
-    function updateBalanceDisplay() {
-      document.getElementById('balance').innerText = userBalance;
-      document.getElementById('prof-balance').innerText = userBalance + " ⭐";
-      document.getElementById('wins-count']?.innerText = userWins;
-    }
-
-    function syncWithBot(won, amount) {
-      userBalance += amount;
-      if (won) userWins++;
-      updateBalanceDisplay();
-
-      if (window.Telegram && window.Telegram.WebApp) {
-        window.Telegram.WebApp.sendData(JSON.stringify({
-          new_balance: userBalance,
-          won: won,
-          win_amount: amount > 0 ? amount : 0
-        }));
-      }
-    }
-
-    function switchTab(tabName) {
-      document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-      document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-
-      const targetTab = document.getElementById('tab-' + tabName);
-      if (targetTab) targetTab.classList.add('active');
-
-      const targetNav = document.getElementById('nav-' + tabName);
-      if (targetNav) targetNav.classList.add('active');
-
-      if (tabName === 'mines') initMinesBoard();
-      if (tabName === 'plinko') drawPlinkoBoard();
-    }
-
-    // --- МІНИ ---
-    let minesActive = false;
-    let minesMultiplier = 1.0;
-
-    function initMinesBoard() {
-      const container = document.getElementById('minesContainer');
-      container.innerHTML = '';
-      for (let i = 0; i < 9; i++) {
-        const cell = document.createElement('div');
-        cell.className = 'mine-cell';
-        cell.innerText = '❓';
-        cell.onclick = () => clickMineCell(cell);
-        container.appendChild(cell);
-      }
-    }
-
-    function startMinesGame() {
-      if (userBalance < 10) {
-        alert('Недостатньо зірочок!');
-        return;
-      }
-      syncWithBot(false, -10);
-      minesActive = true;
-      minesMultiplier = 1.0;
-      document.getElementById('minesBtn').innerText = 'Забрати виграш';
-      initMinesBoard();
-    }
-
-    function clickMineCell(cell) {
-      if (!minesActive) return;
-      const isWin = Math.random() > 0.35;
-      if (isWin) {
-        minesMultiplier = +(minesMultiplier * 1.35).toFixed(2);
-        cell.innerText = '💎';
-        cell.classList.add('revealed');
-        if (!confirm(`Успішно! Поточний множник: ${minesMultiplier}x. Продовжити грати?`)) {
-          const prize = Math.floor(10 * minesMultiplier);
-          syncWithBot(true, prize);
-          alert(`🎉 Ви забрали ${prize} ⭐!`);
-          minesActive = false;
-          document.getElementById('minesBtn').innerText = 'Почати гру (10 ⭐)';
-        }
-      } else {
-        cell.innerText = '💣';
-        cell.classList.add('revealed');
-        alert('💥 Ви натрапили на міну! Програш.');
-        minesActive = false;
-        document.getElementById('minesBtn').innerText = 'Почати гру (10 ⭐)';
-      }
-    }
-
-    // --- ПЛІНКО ---
-    const pCanvas = document.getElementById('plinkoCanvas');
-    const pCtx = pCanvas ? pCanvas.getContext('2d') : null;
-    const multipliers = [4, 2, 1.2, 0.5, 1.2, 2, 4];
-    let ball = null;
-
-    function drawPlinkoBoard() {
-      if (!pCtx) return;
-      pCtx.clearRect(0, 0, pCanvas.width, pCanvas.height);
-      pCtx.fillStyle = '#94a3b8';
-      
-      for (let r = 0; r < 5; r++) {
-        let pins = r + 2;
-        let spacing = 32;
-        let startX = (pCanvas.width - (pins - 1) * spacing) / 2;
-        for (let p = 0; p < pins; p++) {
-          pCtx.beginPath();
-          pCtx.arc(startX + p * spacing, 40 + r * 35, 3, 0, Math.PI * 2);
-          pCtx.fill();
-        }
-      }
-
-      let slotWidth = pCanvas.width / multipliers.length;
-      multipliers.forEach((m, i) => {
-        pCtx.fillStyle = m >= 2 ? '#f59e0b' : '#334155';
-        pCtx.fillRect(i * slotWidth + 2, pCanvas.height - 25, slotWidth - 4, 22);
-        pCtx.fillStyle = '#fff';
-        pCtx.font = '10px sans-serif';
-        pCtx.textAlign = 'center';
-        pCtx.fillText(m + 'x', i * slotWidth + slotWidth / 2, pCanvas.height - 11);
-      });
-
-      if (ball) {
-        pCtx.beginPath();
-        pCtx.arc(ball.x, ball.y, 6, 0, Math.PI * 2);
-        pCtx.fillStyle = '#22c55e';
-        pCtx.fill();
-      }
-    }
-
-    function dropPlinkoBall() {
-      if (userBalance < 10) {
-        alert('Недостатньо зірочок!');
-        return;
-      }
-      syncWithBot(false, -10);
-
-      ball = { x: pCanvas.width / 2, y: 15, vx: (Math.random() - 0.5) * 2, vy: 2 };
-
-      function updateBall() {
-        if (!ball) return;
-        ball.y += ball.vy;
-        ball.x += ball.vx;
-        ball.vy += 0.12;
-
-        if (ball.y >= pCanvas.height - 30) {
-          let slotWidth = pCanvas.width / multipliers.length;
-          let idx = Math.floor(ball.x / slotWidth);
-          idx = Math.max(0, Math.min(idx, multipliers.length - 1));
-          let win = Math.floor(10 * multipliers[idx]);
-          ball = null;
-          drawPlinkoBoard();
-          syncWithBot(true, win);
-          alert(`🎉 Виграш у Плінко: ${win} ⭐!`);
-          return;
-        }
-        drawPlinkoBoard();
-        requestAnimationFrame(updateBall);
-      }
-      updateBall();
-    }
-
-    // --- КЕЙСИ ---
-    function openCase(cost) {
-      if (userBalance < cost) {
-        alert('Недостатньо зірочок!');
-        return;
-      }
-      syncWithBot(false, -cost);
-      let reward = cost === 0 ? Math.floor(Math.random() * 12) : Math.floor(cost * (Math.random() * 2));
-      syncWithBot(true, reward);
-      alert(`🎉 Вітаємо! Ви виграли ${reward} ⭐ з кейсу!`);
-    }
-
-    function copyRefLink() {
-      const input = document.getElementById('refLinkInput');
-      input.select();
-      navigator.clipboard.writeText(input.value);
-      alert('✅ Реферальне посилання скопійовано!');
-    }
-
-    function openStarsMenu() {
-      tg.sendData("open_stars");
-      tg.close();
-    }
-
-    updateBalanceDisplay();
-  </script>
-</body>
-</html>
+    <div id="nav-cases" class="nav-item" onclick="switchTab
