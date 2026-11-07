@@ -44,17 +44,18 @@ async def cmd_start(message: types.Message):
         conn.commit()
     conn.close()
 
-    # Залишаємо виключно кнопку відкриття міні-застосунку
+    # Залишаємо суворо одну кнопку для відкриття міні-застосунку
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🎰 Відкрити Казино WebApp", web_app=WebAppInfo(url=WEBAPP_URL))]
     ])
 
     await message.answer(
         "👋 Вітаємо у Telegram Казино!\n\n"
-        "Натисніть кнопку нижче, щоб відкрити ігрову платформу (Кейси, Міни, Плінко, Ракета):",
+        "Натисніть кнопку нижче, щоб відкрити ігрову платформу:",
         reply_markup=keyboard
     )
 
+# Синхронізація балансу із Mini App
 @dp.message(F.web_app_data)
 async def web_app_data_handler(message: types.Message):
     try:
